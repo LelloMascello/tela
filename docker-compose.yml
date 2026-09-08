@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # 1. Motore di ricerca (MeiliSearch)
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: tela_meilisearch
+    environment:
+      - MEILI_MASTER_KEY=chiave_segreta_tela_123 # Cambiala in produzione
+      - MEILI_ENV=development
+    ports:
+      - "7700:7700"
+    volumes:
+      # Salva i dati fisicamente nella cartella "data/meili_data" del tuo Pi 5
+      - ./data/meili_data:/meili_data
+    restart: unless-stopped
+
+  # 2. Backend (FastAPI, OCR, SQLite)
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tela_backend
+    environment:
+      # URL interno di Docker: il backend parla con MeiliSearch usando il nome del container
+      - MEILI_URL=http://meilisearch:7700 
+      - MEILI_MASTER_KEY=chiave_segreta_tela_123
+    ports:
+      - "8000:8000"
+    volumes:
+      # Il backend ha bisogno di accedere al database SQLite e salvare le immagini degli appunti
+      - ./data:/app/data
+    depends_on:
+      - meilisearch
+    restart: unless-stopped
+
+  # 3. Frontend (React/Vue.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tela_frontend
+    ports:
+      - "3000:3000" # Porta su cui ti collegherai dal browser (es. http://IP_DEL_PI:3000)
+    depends_on:
+      - backend
+    restart: unless-stopped

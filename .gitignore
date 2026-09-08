@@ -1,0 +1,55 @@
+# =========================
+# Python (Backend & OCR)
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Ambienti virtuali
+venv/
+.venv/
+env/
+.env_python/
+
+# =========================
+# Node.js / Vue / React (Frontend)
+# =========================
+node_modules/
+dist/
+build/
+.npm/
+
+# =========================
+# Database e Dati Locali
+# =========================
+*.sqlite3
+*.db
+# Ignora i dati persistenti di MeiliSearch (se lo usi in locale o via Docker)
+data.ms/
+meili_data/
+
+# =========================
+# File utente e Uploads
+# =========================
+# Cartella dove il backend salverà temporaneamente o permanentemente le foto degli appunti
+uploads/
+media/
+assets/notes/
+
+# =========================
+# Variabili d'ambiente (Credenziali, API keys, ecc.)
+# =========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =========================
+# File di sistema e IDE
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
