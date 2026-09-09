@@ -23,17 +23,19 @@ Il progetto è suddiviso nei seguenti moduli:
 ## Setup e Installazione
 ```
 tela/
-├── backend/                  # API, Database e Motore OCR
+├── backend/
 │   ├── app/
-│   │   ├── main.py           # Entry point dell'applicazione FastAPI
-│   │   ├── api/              # Endpoint REST (es. upload.py, notes.py, search.py)
-│   │   ├── core/             # Configurazioni e gestione variabili d'ambiente
-│   │   ├── models/           # Schemi dei dati (SQLAlchemy) e Pydantic
-│   │   └── services/         # Logica di business
-│   │       ├── ocr.py        # Logica di estrazione (EasyOCR/TrOCR)
-│   │       └── search.py     # Sincronizzazione con MeiliSearch
-│   ├── requirements.txt      # Dipendenze Python
-│   └── Dockerfile            # Istruzioni di build per il backend
+│   │   ├── main.py              # Entry point minimo (CORS, startup e inclusione dei router)
+│   │   ├── api/
+│   │   │   └── routes.py        # Tutti gli endpoint (@router.post, @router.get)
+│   │   ├── core/
+│   │   │   ├── config.py        # Variabili globali (UPLOAD_DIR, chiavi Meili etc.)
+│   │   │   └── database.py      # Script per inizializzare SQLite e MeiliSearch
+│   │   └── services/
+│   │       ├── extractor.py     # Estrazione testo (OCR, PDF, Docx, TXT)
+│   │       └── search.py        # Logica di MeiliSearch (inserimento, indicizzazione e query)
+│   ├── requirements.txt
+│   └── Dockerfile
 │
 ├── frontend/                 # Interfaccia Utente (React/Vue)
 │   ├── public/               # Asset statici
