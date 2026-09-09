@@ -4,9 +4,11 @@ import shutil
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Query, HTTPException
 from fastapi.responses import FileResponse
 
-# Importazioni (commentate per ora) dai moduli service e core
-# from core.config import UPLOAD_DIR
-# from core.database import get_db_connection
+# Importazioni attivate dai moduli core appena creati
+from core.config import UPLOAD_DIR
+from core.database import get_db_connection
+
+# Da decommentare quando scriveremo services/extractor.py e services/search.py
 # from services.extractor import process_note_background
 # from services.search import query_notes
 
@@ -23,49 +25,88 @@ async def upload_note(background_tasks: BackgroundTasks, file: UploadFile = File
     note_id = str(uuid.uuid4())
     safe_filename = f"{note_id}.{file_extension}"
     
-    # 1. Utilizzare UPLOAD_DIR da core.config per comporre il percorso
-    # filepath = os.path.join(UPLOAD_DIR, safe_filename)
+    # 1. Utilizzare UPLOAD_DIR per comporre il percorso
+    filepath = os.path.join(UPLOAD_DIR, safe_filename)
     
     # 2. Salvare fisicamente il file con shutil
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
     
-    # 3. Connettersi a SQLite (tramite core.database) e fare l'INSERT 
-    # dello stato 'in_elaborazione'
+    # 3. Connettersi a SQLite e fare l'INSERT
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO notes (id, filename, extension, status) VALUES (?, ?, ?, ?)",
+        (note_id, safe_filename, file_extension, 'in_elaborazione')
+    )
+    conn.commit()
+    conn.close()
     
-    # 4. Aggiungere il task in background dal modulo services.extractor
+    # 4. Aggiungere il task in background (commentato finché non implementiamo extractor)
     # background_tasks.add_task(process_note_background, note_id, filepath, file_extension)
 
     return {
         "id": note_id,
         "status": "in_elaborazione",
-        "message": f"File {file_extension} salvato. Estrazione avviata."
+        "message": f"File {file_extension} salvato con successo. Estrazione in coda."
     }
 
 @router.get("/notes")
 def list_notes(limit: int = 50, offset: int = 0):
-    # 1. Connettersi a SQLite (tramite core.database)
-    # 2. Eseguire SELECT * FROM notes ORDER BY id LIMIT ? OFFSET ?
-    # 3. Restituire la lista dei documenti per popolare la dashboard
-    pass
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Recuperiamo gli appunti più recenti escludendo il testo estratto per alleggerire la risposta
+    cursor.execute(
+        "SELECT id, filename, extension, status, created_at FROM notes ORDER BY created_at DESC LIMIT ? OFFSET ?", 
+        (limit, offset)
+    )
+    notes = cursor.fetchall()
+    conn.close()
+    
+    # Ritorniamo i dati come array di dizionari
+    return {"items": [dict(note) for note in notes]}
 
 @router.get("/notes/{note_id}")
 def get_note_details(note_id: str):
-    # 1. Eseguire SELECT su SQLite filtrando per note_id
-    # 2. Se non esiste, lanciare HTTPException 404
-    # 3. Restituire i metadati e il testo estratto per la visualizzazione con slider
-    pass
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM notes WHERE id = ?", (note_id,))
+    note = cursor.fetchone()
+    conn.close()
+    
+    if not note:
+        raise HTTPException(status_code=404, detail="Nota non trovata")
+        
+    return dict(note)
 
 @router.get("/notes/{note_id}/file")
 def download_original_file(note_id: str):
-    # 1. Recuperare il filename da SQLite
-    # 2. Comporre il filepath esatto (UPLOAD_DIR + filename)
-    # 3. Verificare se esiste fisicamente (os.path.exists)
-    # 4. Restituire il file tramite FileResponse(filepath)
-    pass
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT filename FROM notes WHERE id = ?", (note_id,))
+    note = cursor.fetchone()
+    conn.close()
+    
+    if not note:
+        raise HTTPException(status_code=404, detail="Record nota non trovato nel database")
+        
+    filepath = os.path.join(UPLOAD_DIR, note["filename"])
+    
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File originale non trovato sul disco")
+        
+    return FileResponse(filepath)
 
 @router.get("/search")
 def search_notes(q: str = Query(..., min_length=2)):
-    # 1. Chiamare la funzione query_notes(q) dal modulo services.search
-    # 2. Ricevere gli ID trovati da MeiliSearch
-    # 3. (Opzionale ma consigliato) Chiedere a SQLite i dettagli completi degli appunti trovati
-    # 4. Restituire la lista combinata al frontend
-    pass
+    # Questo endpoint fungerà temporaneamente da mock finché non collegheremo services/search.py
+    
+    # IMPLEMENTAZIONE FUTURA:
+    # ids = query_notes(q)
+    # E poi una SELECT * FROM notes WHERE id IN (lista_ids_da_meilisearch)
+    
+    return {
+        "message": "Ricerca in costruzione. MeiliSearch in attesa del modulo services.search.",
+        "query": q
+    }
