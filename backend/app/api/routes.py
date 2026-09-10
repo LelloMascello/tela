@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 
 # Importazioni attivate dai moduli core appena creati
 from app.core.config import UPLOAD_DIR
-from app.core.database import get_db_connection
+from app.core.database import get_db_connection, delete_note
 
 # Da decommentare quando scriveremo services/extractor.py e services/search.py
 from app.services.extractor import process_note_background
@@ -97,6 +97,19 @@ def download_original_file(note_id: str):
         raise HTTPException(status_code=404, detail="File originale non trovato sul disco")
         
     return FileResponse(filepath)
+
+@router.delete("/notes/{note_id}")
+def delete_note_route(note_id: str):
+    deleted = delete_note(note_id)
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Nota non trovata")
+
+    return {
+        "id": note_id,
+        "status": "eliminato",
+        "message": "Nota eliminata con successo"
+    }
 
 @router.get("/search")
 def search_notes(q: str = Query(..., min_length=2)):

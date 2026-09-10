@@ -64,6 +64,10 @@ const handleSearch = async (query) => {
   }
 };
 
+const handleNoteDeleted = () => {
+  window.location.reload();
+};
+
 onMounted(fetchNotes);
 </script>
 
@@ -123,7 +127,7 @@ onMounted(fetchNotes);
     </main>
 
     <UploadModal v-if="isUploadModalOpen" @close="isUploadModalOpen = false" @uploaded="fetchNotes" />
-    <DetailModal v-if="selectedNoteId" :note-id="selectedNoteId" @close="selectedNoteId = null" />
+    <DetailModal v-if="selectedNoteId" :note-id="selectedNoteId" @close="selectedNoteId = null" @deleted="handleNoteDeleted" />
   </div>
 </template>
 
