@@ -17,7 +17,10 @@ router = APIRouter(prefix="/api", tags=["Notes"])
 @router.post("/upload")
 async def upload_note(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     file_extension = file.filename.split(".")[-1].lower()
-    allowed_extensions = ['txt', 'pdf', 'docx', 'jpg', 'jpeg', 'png', 'webp']
+    allowed_extensions = [
+        'txt', 'pdf', 'docx', 'jpg', 'jpeg', 'png', 'webp',
+        'pptx', 'xlsx', 'mp3', 'wav', 'mp4', 'avi'
+    ]
     
     if file_extension not in allowed_extensions:
         raise HTTPException(status_code=400, detail="Formato non supportato")

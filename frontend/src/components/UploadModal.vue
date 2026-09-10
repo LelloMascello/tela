@@ -9,7 +9,7 @@ const isDragging = ref(false);
 const queue = ref([]);
 let nextId = 0;
 
-const acceptTypes = '.png,.jpg,.jpeg,.webp,.pdf,.docx,.txt';
+const acceptTypes = '.png,.jpg,.jpeg,.webp,.pdf,.docx,.txt,.pptx,.xlsx,.mp3,.wav,.mp4,.avi';
 
 const isUploading = computed(() => queue.value.some((item) => item.status === 'uploading'));
 const hasFiles = computed(() => queue.value.length > 0);
@@ -93,7 +93,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
         @click="openFileDialog"
       >
         <p>Trascina qui i tuoi file o clicca per sfogliare</p>
-        <p class="subtitle">PNG, JPG, PDF, DOCX o TXT — anche più file insieme</p>
+        <p class="subtitle">Immagini, PDF, Word, PowerPoint, Excel, audio e video — anche più file insieme</p>
         <input
           ref="fileInputRef"
           type="file"

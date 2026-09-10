@@ -14,11 +14,15 @@ const selectedNoteId = ref(null);
 const activeFilter = ref('Tutti');
 const currentQuery = ref('');
 
-const filters = ['Tutti', 'PDF', 'Immagini', 'Documenti'];
+const filters = ['Tutti', 'PDF', 'Documenti', 'Immagini', 'Fogli', 'Presentazioni', 'Audio', 'Video'];
 const filterExtensions = {
   PDF: ['pdf'],
-  Immagini: ['jpg', 'jpeg', 'png', 'webp'],
   Documenti: ['docx', 'txt'],
+  Immagini: ['jpg', 'jpeg', 'png', 'webp'],
+  Fogli: ['xlsx'],
+  Presentazioni: ['pptx'],
+  Audio: ['mp3', 'wav'],
+  Video: ['mp4', 'avi'],
 };
 
 // Bug fix: filter chips previously updated `activeFilter` but nothing

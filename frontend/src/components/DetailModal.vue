@@ -11,8 +11,11 @@ const loadError = ref(null);
 const activeView = ref('document');
 const isDeleting = ref(false);
 const deleteError = ref(null);
+const mediaError = ref(false);
 
 const imageExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+const audioExtensions = ['mp3', 'wav'];
+const videoExtensions = ['mp4', 'avi'];
 
 // Bug fix: the download link was hardcoded to http://localhost:8000, which
 // only works when the frontend and backend are opened on the same machine.
@@ -22,10 +25,35 @@ const fileUrl = computed(() => `${api.defaults?.baseURL ?? ''}/notes/${props.not
 const extension = computed(() => (note.value?.extension || '').toLowerCase());
 const isImage = computed(() => imageExtensions.includes(extension.value));
 const isPdf = computed(() => extension.value === 'pdf');
+const isAudio = computed(() => audioExtensions.includes(extension.value));
+const isVideo = computed(() => videoExtensions.includes(extension.value));
+const isAvMedia = computed(() => isAudio.value || isVideo.value);
+
+// pptx, xlsx (and anything else without a native browser preview) fall back
+// to the "no-preview" state further down; audio/video get a real player but
+// can still fail (codec support varies, e.g. some .avi files), hence mediaError.
+const documentTabLabel = computed(() => (isAvMedia.value ? 'Player' : 'Documento'));
+const textTabLabel = computed(() => (isAvMedia.value ? 'Trascrizione' : 'Testo'));
+
+const noPreviewMessage = computed(() => {
+  if (mediaError.value) {
+    return isAudio.value
+      ? 'Il browser non riesce a riprodurre questo file audio. Scaricalo per ascoltarlo.'
+      : 'Il browser non riesce a riprodurre questo video. Scaricalo per guardarlo.';
+  }
+  return "L'anteprima non è disponibile per questo formato.";
+});
+
+const emptyTextMessage = computed(() => (
+  isAvMedia.value
+    ? 'Nessuna trascrizione disponibile per questo file.'
+    : 'Nessun testo estratto per questo documento.'
+));
 
 async function loadNote() {
   isLoading.value = true;
   loadError.value = null;
+  mediaError.value = false;
   try {
     const response = await api.get(`/notes/${props.noteId}`);
     note.value = response.data;
@@ -87,8 +115,8 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
           <h3>{{ note.filename }}</h3>
           <div class="actions">
             <div class="view-toggle">
-              <button type="button" :class="{ active: activeView === 'document' }" @click="activeView = 'document'">Documento</button>
-              <button type="button" :class="{ active: activeView === 'text' }" @click="activeView = 'text'">Testo</button>
+              <button type="button" :class="{ active: activeView === 'document' }" @click="activeView = 'document'">{{ documentTabLabel }}</button>
+              <button type="button" :class="{ active: activeView === 'text' }" @click="activeView = 'text'">{{ textTabLabel }}</button>
             </div>
             <a :href="fileUrl" :download="note.filename" class="btn-secondary">Scarica</a>
             <button type="button" class="btn-danger" :disabled="isDeleting" @click="handleDelete">
@@ -103,15 +131,29 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
         <div class="content-split">
           <div v-if="activeView === 'text'" class="extracted-text">
             <p v-if="note.extracted_text">{{ note.extracted_text }}</p>
-            <p v-else class="empty-note">Nessun testo estratto per questo documento.</p>
+            <p v-else class="empty-note">{{ emptyTextMessage }}</p>
           </div>
 
           <div v-else class="preview-area">
             <img v-if="isImage" :src="fileUrl" :alt="note.filename" class="preview-image" />
             <iframe v-else-if="isPdf" :src="fileUrl" class="preview-pdf" title="Anteprima documento"></iframe>
+            <audio
+              v-else-if="isAudio && !mediaError"
+              :src="fileUrl"
+              controls
+              class="preview-audio"
+              @error="mediaError = true"
+            ></audio>
+            <video
+              v-else-if="isVideo && !mediaError"
+              :src="fileUrl"
+              controls
+              class="preview-video"
+              @error="mediaError = true"
+            ></video>
             <div v-else class="no-preview">
               <span class="no-preview-badge">{{ extension.toUpperCase() || 'FILE' }}</span>
-              <p>L'anteprima non è disponibile per questo formato.</p>
+              <p>{{ noPreviewMessage }}</p>
               <a :href="fileUrl" :download="note.filename" class="btn-secondary">Scarica per visualizzarlo</a>
             </div>
           </div>
@@ -145,6 +187,8 @@ h3 { margin: 0; font-family: var(--font-display); font-size: 22px; color: var(--
 .preview-area { width: 100%; display: flex; align-items: center; justify-content: center; overflow: auto; }
 .preview-image { max-width: 100%; max-height: 100%; object-fit: contain; }
 .preview-pdf { width: 100%; height: 100%; border: none; }
+.preview-audio { width: 88%; max-width: 460px; }
+.preview-video { max-width: 100%; max-height: 100%; background: #000; border-radius: var(--radius-sm); }
 .no-preview { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--color-ink-muted); padding: 40px; text-align: center; }
 .no-preview-badge { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--color-accent); border: 1.5px solid var(--color-accent); background: var(--color-accent-soft); padding: 5px 14px; border-radius: 4px; }
 .extracted-text { width: 100%; padding: 28px 32px; overflow-y: auto; }

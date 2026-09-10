@@ -1,22 +1,30 @@
 import os
-import pymupdf  # Sostituito fitz (deprecato) con pymupdf per i file PDF
-import docx  # python-docx per i file Word
-import easyocr # OCR per le immagini
+import pymupdf
+import docx
+import easyocr
+from pptx import Presentation
+import openpyxl
+from faster_whisper import WhisperModel
 from app.core.database import get_db_connection
 from app.services.search import index_note
 
-# Inizializzazione lazy del reader OCR per non bloccare il caricamento iniziale di FastAPI
 _ocr_reader = None
+_whisper_model = None
 
 def get_ocr_reader():
     global _ocr_reader
     if _ocr_reader is None:
-        # Carica i modelli per italiano e inglese (scaricati al primo avvio)
         _ocr_reader = easyocr.Reader(['it', 'en'])
     return _ocr_reader
 
+def get_whisper_model():
+    global _whisper_model
+    if _whisper_model is None:
+        # device="cpu" o "cuda" a seconda dell'hardware. compute_type="int8" riduce l'impatto in RAM
+        _whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
+    return _whisper_model
+
 def extract_text(filepath: str, extension: str) -> str:
-    """Estrae il testo in base all'estensione del file fornito."""
     text = ""
     try:
         if extension == 'txt':
@@ -28,17 +36,37 @@ def extract_text(filepath: str, extension: str) -> str:
             text = "\n".join([para.text for para in doc.paragraphs])
             
         elif extension == 'pdf':
-            # Utilizzo della nuova API pymupdf
             with pymupdf.open(filepath) as doc:
                 for page in doc:
                     text += page.get_text() + "\n"
                     
         elif extension in ['jpg', 'jpeg', 'png', 'webp']:
             reader = get_ocr_reader()
-            # detail=0 restituisce solo una lista di stringhe senza le coordinate dei bounding box
             result = reader.readtext(filepath, detail=0)
             text = " ".join(result)
-            
+
+        elif extension == 'pptx':
+            prs = Presentation(filepath)
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if hasattr(shape, "text"):
+                        text += shape.text + "\n"
+                        
+        elif extension == 'xlsx':
+            wb = openpyxl.load_workbook(filepath, data_only=True)
+            for sheet in wb.worksheets:
+                for row in sheet.iter_rows(values_only=True):
+                    row_text = " ".join([str(cell) for cell in row if cell is not None])
+                    if row_text.strip():
+                        text += row_text + "\n"
+                        
+        elif extension in ['mp3', 'wav', 'mp4', 'avi']:
+            model = get_whisper_model()
+            # faster-whisper accetta direttamente sia file audio che video
+            segments, info = model.transcribe(filepath, beam_size=5)
+            # segments è un generatore, iteriamo per concatenare il testo
+            text = " ".join([segment.text for segment in segments])
+                
     except Exception as e:
         print(f"Errore durante l'estrazione da {filepath}: {e}")
         raise e
@@ -66,7 +94,6 @@ def process_note_background(note_id: str, filepath: str, extension: str):
         filename = os.path.basename(filepath)
         
         # Invia i dati a MeiliSearch per l'indicizzazione
-        # Se search.py richiede i parametri in un ordine diverso, invertili qui sotto
         index_note(note_id, filename, extension, extracted_text)
         
     except Exception as e:
