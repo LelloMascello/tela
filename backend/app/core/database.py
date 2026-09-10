@@ -1,6 +1,6 @@
 import sqlite3
 import meilisearch
-from core.config import DB_PATH, MEILI_HOST, MEILI_API_KEY
+from app.core.config import DB_PATH, MEILI_HOST, MEILI_API_KEY
 
 def get_db_connection():
     # check_same_thread=False è necessario in FastAPI per condividere la connessione tra le richieste

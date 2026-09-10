@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. Motore di ricerca (MeiliSearch)
   meilisearch:
@@ -35,13 +33,13 @@ services:
     restart: unless-stopped
 
   # 3. Frontend (React/Vue.js)
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: tela_frontend
-    ports:
-      - "3000:3000" # Porta su cui ti collegherai dal browser (es. http://IP_DEL_PI:3000)
-    depends_on:
-      - backend
-    restart: unless-stopped
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: tela_frontend
+  #   ports:
+  #     - "3000:3000" # Porta su cui ti collegherai dal browser (es. http://IP_DEL_PI:3000)
+  #   depends_on:
+  #     - backend
+  #   restart: unless-stopped

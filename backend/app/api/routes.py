@@ -5,12 +5,12 @@ from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Query, HTTPExc
 from fastapi.responses import FileResponse
 
 # Importazioni attivate dai moduli core appena creati
-from core.config import UPLOAD_DIR
-from core.database import get_db_connection
+from app.core.config import UPLOAD_DIR
+from app.core.database import get_db_connection
 
 # Da decommentare quando scriveremo services/extractor.py e services/search.py
-# from services.extractor import process_note_background
-# from services.search import query_notes
+from app.services.extractor import process_note_background
+from app.services.search import query_notes
 
 router = APIRouter(prefix="/api", tags=["Notes"])
 
@@ -43,7 +43,7 @@ async def upload_note(background_tasks: BackgroundTasks, file: UploadFile = File
     conn.close()
     
     # 4. Aggiungere il task in background (commentato finché non implementiamo extractor)
-    # background_tasks.add_task(process_note_background, note_id, filepath, file_extension)
+    background_tasks.add_task(process_note_background, note_id, filepath, file_extension)
 
     return {
         "id": note_id,
@@ -100,13 +100,9 @@ def download_original_file(note_id: str):
 
 @router.get("/search")
 def search_notes(q: str = Query(..., min_length=2)):
-    # Questo endpoint fungerà temporaneamente da mock finché non collegheremo services/search.py
-    
-    # IMPLEMENTAZIONE FUTURA:
-    # ids = query_notes(q)
-    # E poi una SELECT * FROM notes WHERE id IN (lista_ids_da_meilisearch)
-    
+    hits = query_notes(q)
     return {
-        "message": "Ricerca in costruzione. MeiliSearch in attesa del modulo services.search.",
-        "query": q
+        "query": q,
+        "total_hits": len(hits),
+        "results": hits
     }
