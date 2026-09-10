@@ -186,7 +186,7 @@ button, input { font-family: inherit; }
   }
 }
 
-.app-layout { max-width: 1180px; margin: 0 auto; padding: 48px 24px 80px; }
+.app-layout { margin: 0 auto; padding: 48px clamp(24px, 5vw, 96px) 80px; }
 
 .main-header { margin-bottom: 4px; }
 
@@ -258,20 +258,8 @@ button, input { font-family: inherit; }
 
 .grid-container {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-}
-
-@media (min-width: 640px) {
-  .grid-container { grid-template-columns: repeat(3, 1fr); gap: 18px; }
-}
-
-@media (min-width: 1024px) {
-  .grid-container { grid-template-columns: repeat(4, 1fr); gap: 20px; }
-}
-
-@media (min-width: 1440px) {
-  .grid-container { grid-template-columns: repeat(5, 1fr); }
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
 }
 
 .skeleton-card {
