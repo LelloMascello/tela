@@ -1,6 +1,6 @@
 # TELA (Text Extraction & Local Archiving)
 
-TELA è un sistema self-hosted progettato per centralizzare, elaborare e indicizzare appunti personali e documenti. Fornisce una pipeline completa per acquisire file in vari formati, estrarne il contenuto testuale e renderli immediatamente ricercabili tramite un motore full-text locale sul tuo Raspberry Pi 5.
+TELA è un sistema self-hosted progettato per centralizzare, elaborare e indicizzare appunti personali e documenti. Fornisce una pipeline completa per acquisire file in vari formati, estrarne il contenuto testuale e renderli immediatamente ricercabili tramite un motore full-text locale.
 
 ## Architettura del Sistema
 
@@ -57,3 +57,11 @@ tela/
 ├── .gitignore                # Regole di esclusione file
 └── README.md                 # Documentazione del progetto
 ```
+
+## TO DO
+
+futuri sviluppi per il progetto:
+- **ampliamento formati supportati:** tracce audio e video formati mp4 e mp3, PowerPoint e excel
+- **caricamento:** cambiare il metodo di caricamento da sito a bot telegram, questo per evitare di doversi sempre connettere alla vpn per caricare.
+- **eliminazione:** aggiungere alla copia di pulsanti scarica e visualizza testo estratto un terzo pulsante per cancellare l'elemento.
+- **ricerca:** permettere la ricerca tramite Telegram che ritorna i file più pertinenti da scaricare
