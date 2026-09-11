@@ -38,8 +38,31 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: tela_frontend
+    environment:
+      # Letta dal browser dell'utente, NON è l'hostname interno Docker (quello lo usa solo il bot)
+      - VITE_BACKEND_URL=${VITE_BACKEND_URL}
     ports:
       - "3000:3000" # Porta su cui ti collegherai dal browser (es. http://IP_DEL_PI:3000)
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # 4. Bot Telegram (upload, ricerca e link al sito senza passare dalla VPN)
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: tela_bot
+    environment:
+      # Token del bot ottenuto da @BotFather (vedi bot/README.md)
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      # URL interno Docker: il bot parla col backend usando il nome del container
+      - BACKEND_URL=http://backend:8000
+      # URL pubblico/VPN del frontend, usato dal comando /sito
+      - WEBSITE_URL=${WEBSITE_URL}
+      # user_id Telegram autorizzati a usare il bot, separati da virgola (vedi bot/README.md)
+      - ALLOWED_USER_IDS=${ALLOWED_USER_IDS}
+    # Nessuna porta esposta: il bot fa solo chiamate in uscita (Telegram + backend interno)
     depends_on:
       - backend
     restart: unless-stopped

@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-// Puntiamo alla porta 8000 esposta dal backend nel docker-compose
+// Base URL del backend, letta da VITE_BACKEND_URL (vedi .env).
+// Fallback a localhost per sviluppo locale senza Docker.
 export const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/api`,
 });
