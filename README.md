@@ -48,6 +48,21 @@ tela/
 │   ├── package.json          # Dipendenze Node.js
 │   └── Dockerfile            # Istruzioni di build per il frontend
 │
+├── bot/                                       
+│   ├── app/                                
+│   │   ├── core/                
+│   │   │   └── config.py                           
+│   │   ├── handlers/            
+│   │   │   ├── auth.py           
+│   │   │   ├── search.py           
+│   │   │   ├── site.py          
+│   │   │   ├── start.py            
+│   │   │   └── upload.py        
+│   │   ├── main.py             
+│   │   └── client.py    
+│   ├── requirements.txt            
+│   └── Dockerfile           
+│
 ├── data/                     # Dati persistenti (da inserire nel .gitignore)
 │   ├── uploads/              # Salvataggio delle immagini ricevute
 │   ├── database/             # File SQLite
