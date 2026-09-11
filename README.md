@@ -19,6 +19,7 @@ Il progetto è suddiviso nei seguenti moduli:
 - **Elaborazione Smart:** Il sistema riconosce il formato e applica automaticamente l'OCR alle immagini o l'estrazione testo ai documenti digitali.
 - **Interfaccia di Visualizzazione:** Affiancamento o sovrapposizione tra il documento originale (mantenuto intatto per il download) e la versione digitalizzata.
 - **Ricerca Avanzata:** Fuzzy search integrata su tutto il testo estratto per recuperare rapidamente le informazioni, tollerando errori di battitura.
+- **Tela archive bot:** un bot telegram che permette di caricare e ricercare file senza essere sulla stessa LAN del server.
 
 ## Setup e Installazione
 ```
@@ -60,5 +61,5 @@ tela/
 
 ## TO DO
 
-- **caricamento:** cambiare il metodo di caricamento da sito a bot telegram, questo per evitare di doversi sempre connettere alla vpn per caricare.
-- **ricerca:** permettere la ricerca tramite Telegram che ritorna i file più pertinenti da scaricare
+- **Edit trascrizione:** permette di modificare e correggere la trascrizione nel DetailModal e salvare la versione aggiornata.
+- "Titolo aggiornato:" al posto di mostrare il nome del file che è randomico, creare un campo titolo da mostrare sia sul sito che su telegram, il titolo sara automaticamente creato utilizzando i primi 30 caratteri del testo trascritto con l'aggiunta di puntini di sospensione alla fine.
