@@ -15,7 +15,7 @@ Il progetto è suddiviso nei seguenti moduli:
 
 ## Funzionalità Principali
 
-- **Supporto Multi-Formato:** Caricamento di file immagine (PNG, JPG), PDF, Word (.docx) e file di testo (.txt).
+- **Supporto Multi-Formato:** Caricamento di file immagine (.png, .jpg e .jpeg), PDF, documenti (.docx), file di testo (.txt), presentazioni (.pptx), fogli di calcolo (.xlsx), audio (.mp3 e .wav) e video (.mp4 e .avi).
 - **Elaborazione Smart:** Il sistema riconosce il formato e applica automaticamente l'OCR alle immagini o l'estrazione testo ai documenti digitali.
 - **Interfaccia di Visualizzazione:** Affiancamento o sovrapposizione tra il documento originale (mantenuto intatto per il download) e la versione digitalizzata.
 - **Ricerca Avanzata:** Fuzzy search integrata su tutto il testo estratto per recuperare rapidamente le informazioni, tollerando errori di battitura.
@@ -40,10 +40,10 @@ tela/
 ├── frontend/                 # Interfaccia Utente (React/Vue)
 │   ├── public/               # Asset statici
 │   ├── src/
-│   │   ├── components/       # Componenti riutilizzabili (es. ImageTextSlider, SearchBar)
-│   │   ├── views/            # Pagine (es. Dashboard, NoteViewer)
-│   │   ├── api/              # Funzioni per comunicare con il backend
-│   │   └── App.jsx/vue       # Root component
+│   │   ├── components/       # Componenti riutilizzabili (es. NoteCard, SearchBar)
+│   │   ├── assets/           # elementi grafici
+│   │   ├── api/              # Funzioni per comunicare con il backend (axios)
+│   │   └── App.vue           # Root component
 │   ├── package.json          # Dipendenze Node.js
 │   └── Dockerfile            # Istruzioni di build per il frontend
 │
@@ -60,8 +60,5 @@ tela/
 
 ## TO DO
 
-futuri sviluppi per il progetto:
-- **ampliamento formati supportati:** tracce audio e video formati mp4 e mp3, PowerPoint e excel
 - **caricamento:** cambiare il metodo di caricamento da sito a bot telegram, questo per evitare di doversi sempre connettere alla vpn per caricare.
-- **eliminazione:** aggiungere alla copia di pulsanti scarica e visualizza testo estratto un terzo pulsante per cancellare l'elemento.
 - **ricerca:** permettere la ricerca tramite Telegram che ritorna i file più pertinenti da scaricare
