@@ -131,7 +131,13 @@ onMounted(fetchNotes);
     </main>
 
     <UploadModal v-if="isUploadModalOpen" @close="isUploadModalOpen = false" @uploaded="fetchNotes" />
-    <DetailModal v-if="selectedNoteId" :note-id="selectedNoteId" @close="selectedNoteId = null" @deleted="handleNoteDeleted" />
+    <DetailModal
+      v-if="selectedNoteId"
+      :note-id="selectedNoteId"
+      @close="selectedNoteId = null"
+      @deleted="handleNoteDeleted"
+      @updated="fetchNotes"
+    />
   </div>
 </template>
 

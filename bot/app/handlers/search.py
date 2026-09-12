@@ -28,7 +28,10 @@ async def cerca(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     shown = hits[:MAX_SEARCH_RESULTS]
     buttons = [
-        [InlineKeyboardButton(f"📄 {hit.get('filename', hit.get('id'))}", callback_data=f"dl:{hit['id']}")]
+        [InlineKeyboardButton(
+            f"📄 {hit.get('title') or hit.get('filename', hit.get('id'))}",
+            callback_data=f"dl:{hit['id']}"
+        )]
         for hit in shown
     ]
 

@@ -13,6 +13,26 @@ def get_db_connection():
 def get_meili_client():
     return meilisearch.Client(MEILI_HOST, MEILI_API_KEY)
 
+def generate_title(text: str | None, fallback: str) -> str:
+    """Genera automaticamente il titolo di una nota a partire dal testo
+    estratto: i primi 30 caratteri del testo, con puntini di sospensione
+    aggiunti in fondo se il testo è più lungo. Se non c'è ancora testo
+    disponibile (es. estrazione in corso o fallita), usa 'fallback'
+    (tipicamente il filename) così il titolo non resta mai vuoto.
+    """
+    if not text:
+        return fallback
+
+    # Normalizza spazi/newline multipli così il titolo resta su una riga
+    cleaned = " ".join(text.split())
+    if not cleaned:
+        return fallback
+
+    if len(cleaned) <= 30:
+        return cleaned
+
+    return cleaned[:30].rstrip() + "..."
+
 def init_dbs():
     """Inizializza le tabelle SQLite e gli indici di MeiliSearch al boot."""
     # 1. Inizializzazione SQLite
@@ -25,6 +45,7 @@ def init_dbs():
             extension TEXT NOT NULL,
             status TEXT NOT NULL,
             extracted_text TEXT,
+            title TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -39,7 +60,7 @@ def init_dbs():
         client.create_index('notes', {'primaryKey': 'id'})
         
         # Opzionale ma consigliato: configura quali campi sono ricercabili
-        client.index('notes').update_searchable_attributes(['extracted_text', 'filename', 'extension'])
+        client.index('notes').update_searchable_attributes(['title', 'extracted_text', 'filename', 'extension'])
         print("MeiliSearch connesso e indice 'notes' verificato.")
     except Exception as e:
         print(f"Avviso: Connessione a MeiliSearch non riuscita al momento del setup. Errore: {e}")
@@ -82,3 +103,59 @@ def delete_note(note_id: str) -> bool:
         print(f"Avviso: impossibile rimuovere la nota {note_id} da MeiliSearch. Errore: {e}")
 
     return True
+
+
+def update_note_text(note_id: str, extracted_text: str, status: str | None = None) -> dict | None:
+    """Aggiorna il testo estratto di una nota e ricalcola automaticamente il
+    titolo (primi 30 caratteri del testo + puntini di sospensione),
+    sincronizzando anche l'indice MeiliSearch.
+
+    Usata in due punti:
+    - dal worker di estrazione (services/extractor.py) quando l'OCR/parsing
+      termina, passando lo status finale (es. 'completato' o 'errore');
+    - dall'endpoint PATCH /api/notes/{id} quando l'utente corregge a mano la
+      trascrizione dal DetailModal (qui lo status non viene toccato).
+
+    Ritorna la nota aggiornata come dizionario, o None se l'id non esiste.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM notes WHERE id = ?", (note_id,))
+    existing = cursor.fetchone()
+
+    if not existing:
+        conn.close()
+        return None
+
+    title = generate_title(extracted_text, fallback=existing["filename"])
+    new_status = status if status is not None else existing["status"]
+
+    cursor.execute(
+        "UPDATE notes SET extracted_text = ?, title = ?, status = ? WHERE id = ?",
+        (extracted_text, title, new_status, note_id)
+    )
+    conn.commit()
+
+    cursor.execute("SELECT * FROM notes WHERE id = ?", (note_id,))
+    updated_note = dict(cursor.fetchone())
+    conn.close()
+
+    # Aggiorna anche MeiliSearch (update_documents fa un merge sui campi
+    # esistenti). Includiamo filename/extension oltre a quelli cambiati così
+    # questa funzione basta da sola a indicizzare la nota anche la prima
+    # volta (fine estrazione), senza bisogno di una chiamata add_documents
+    # separata altrove. Se MeiliSearch non è raggiungibile, la nota resta
+    # comunque aggiornata su SQLite.
+    try:
+        get_meili_client().index('notes').update_documents([{
+            'id': note_id,
+            'filename': existing["filename"],
+            'extension': existing["extension"],
+            'extracted_text': extracted_text,
+            'title': title,
+            'status': new_status,
+        }])
+    except Exception as e:
+        print(f"Avviso: impossibile aggiornare la nota {note_id} su MeiliSearch. Errore: {e}")
+
+    return updated_note

@@ -16,7 +16,7 @@ Il progetto è suddiviso nei seguenti moduli:
 ## Funzionalità Principali
 
 - **Supporto Multi-Formato:** Caricamento di file immagine (.png, .jpg e .jpeg), PDF, documenti (.docx), file di testo (.txt), presentazioni (.pptx), fogli di calcolo (.xlsx), audio (.mp3 e .wav) e video (.mp4 e .avi).
-- **Elaborazione Smart:** Il sistema riconosce il formato e applica automaticamente l'OCR alle immagini o l'estrazione testo ai documenti digitali.
+- **Elaborazione Smart:** Il sistema riconosce il formato e applica automaticamente l'OCR alle immagini o l'estrazione testo ai documenti digitali e Faster-Whisper per formati audio e video.
 - **Interfaccia di Visualizzazione:** Affiancamento o sovrapposizione tra il documento originale (mantenuto intatto per il download) e la versione digitalizzata.
 - **Ricerca Avanzata:** Fuzzy search integrata su tutto il testo estratto per recuperare rapidamente le informazioni, tollerando errori di battitura.
 - **Tela archive bot:** un bot telegram che permette di caricare e ricercare file senza essere sulla stessa LAN del server.
@@ -77,4 +77,4 @@ tela/
 ## TO DO
 
 - **Edit trascrizione:** permette di modificare e correggere la trascrizione nel DetailModal e salvare la versione aggiornata.
-- "Titolo aggiornato:" al posto di mostrare il nome del file che è randomico, creare un campo titolo da mostrare sia sul sito che su telegram, il titolo sara automaticamente creato utilizzando i primi 30 caratteri del testo trascritto con l'aggiunta di puntini di sospensione alla fine.
+- **Titolo aggiornato:** al posto di mostrare il nome del file che è randomico, creare un campo titolo da mostrare sia sul sito che su telegram, il titolo sara automaticamente creato utilizzando i primi 30 caratteri del testo trascritto con l'aggiunta di puntini di sospensione alla fine.

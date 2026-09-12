@@ -1,8 +1,10 @@
+import asyncio
+
 from telegram import Update
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
-from app.client import BackendError, upload_file
+from app.client import BackendError, upload_file, get_note_details
 from app.core.config import logger
 from app.handlers.auth import restricted
 
@@ -12,6 +14,13 @@ ALLOWED_EXTENSIONS = {
     "pptx", "xlsx", "mp3", "wav", "mp4", "avi",
 }
 
+# Quanto aspettare (e con che frequenza controllare) che l'estrazione in
+# background finisca prima di mostrare il titolo automatico. L'OCR e la
+# trascrizione audio/video (Whisper) possono richiedere più tempo dei
+# formati testuali, da qui un timeout generoso.
+TITLE_POLL_INTERVAL_SECONDS = 5
+TITLE_POLL_TIMEOUT_SECONDS = 600
+
 
 def _confirmation_text(filename: str, data: dict) -> str:
     return (
@@ -19,6 +28,47 @@ def _confirmation_text(filename: str, data: dict) -> str:
         f"🆔 `{data.get('id', '?')}`\n"
         f"📌 Stato: {data.get('status', '?')}"
     )
+
+
+def _title_ready_text(note: dict) -> str:
+    if note.get("status") == "errore":
+        return f"❌ Estrazione fallita per *{note.get('filename', '?')}*. Il file resta archiviato, ma senza testo/titolo automatico."
+    title = note.get("title") or note.get("filename", "?")
+    return f"📌 Titolo aggiornato: *{title}*"
+
+
+async def _watch_for_title(status_msg, note_id: str, base_text: str):
+    """L'estrazione testo gira in background sul backend dopo l'upload: qui
+    la aspettiamo con un breve polling e, appena lo status non è più
+    'in_elaborazione' (titolo automatico pronto, oppure estrazione fallita),
+    aggiorniamo il messaggio di conferma al posto del filename randomico."""
+    elapsed = 0
+    while elapsed < TITLE_POLL_TIMEOUT_SECONDS:
+        await asyncio.sleep(TITLE_POLL_INTERVAL_SECONDS)
+        elapsed += TITLE_POLL_INTERVAL_SECONDS
+
+        try:
+            note = await get_note_details(note_id)
+        except BackendError as e:
+            logger.warning("Polling titolo fallito per %s: %s", note_id, e)
+            return
+
+        if note.get("status") != "in_elaborazione":
+            try:
+                await status_msg.edit_text(_title_ready_text(note), parse_mode="Markdown")
+            except BadRequest:
+                pass  # l'utente ha già cancellato/modificato il messaggio
+            return
+
+    # Timeout: l'estrazione sta impiegando più del previsto (es. video lunghi).
+    try:
+        await status_msg.edit_text(
+            f"{base_text}\n\n⏳ L'estrazione sta impiegando più del previsto, "
+            "riprova a cercare il file tra un po'.",
+            parse_mode="Markdown",
+        )
+    except BadRequest:
+        pass
 
 
 @restricted
@@ -57,7 +107,9 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await status_msg.edit_text("❌ Errore imprevisto durante il caricamento.")
         return
 
-    await status_msg.edit_text(_confirmation_text(filename, data), parse_mode="Markdown")
+    confirmation_text = _confirmation_text(filename, data)
+    await status_msg.edit_text(confirmation_text, parse_mode="Markdown")
+    context.application.create_task(_watch_for_title(status_msg, data.get("id"), confirmation_text))
 
 
 @restricted
@@ -87,4 +139,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await status_msg.edit_text("❌ Errore imprevisto durante il caricamento.")
         return
 
-    await status_msg.edit_text(_confirmation_text(filename, data), parse_mode="Markdown")
+    confirmation_text = _confirmation_text(filename, data)
+    await status_msg.edit_text(confirmation_text, parse_mode="Markdown")
+    context.application.create_task(_watch_for_title(status_msg, data.get("id"), confirmation_text))

@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { api } from '../api/client';
 
 const props = defineProps({ noteId: { type: String, required: true } });
-const emit = defineEmits(['close', 'deleted']);
+const emit = defineEmits(['close', 'deleted', 'updated']);
 
 const note = ref(null);
 const isLoading = ref(true);
@@ -12,6 +12,12 @@ const activeView = ref('document');
 const isDeleting = ref(false);
 const deleteError = ref(null);
 const mediaError = ref(false);
+
+// Stato per la modifica manuale della trascrizione (correzione OCR/testo)
+const isEditingText = ref(false);
+const editedText = ref('');
+const isSavingText = ref(false);
+const saveTextError = ref(null);
 
 const imageExtensions = ['jpg', 'jpeg', 'png', 'webp'];
 const audioExtensions = ['mp3', 'wav'];
@@ -22,6 +28,9 @@ const videoExtensions = ['mp4', 'avi'];
 // Reusing the api client's own base URL means it also works over the LAN
 // (e.g. from a phone hitting the Raspberry Pi's address).
 const fileUrl = computed(() => `${api.defaults?.baseURL ?? ''}/notes/${props.noteId}/file`);
+// Il titolo è generato automaticamente dal backend dal testo estratto; finché
+// non è disponibile (o per note più vecchie) ripieghiamo sul filename.
+const displayTitle = computed(() => note.value?.title || note.value?.filename || '');
 const extension = computed(() => (note.value?.extension || '').toLowerCase());
 const isImage = computed(() => imageExtensions.includes(extension.value));
 const isPdf = computed(() => extension.value === 'pdf');
@@ -69,7 +78,7 @@ async function handleDelete() {
   if (isDeleting.value) return;
 
   const confirmed = window.confirm(
-    `Eliminare definitivamente "${note.value?.filename}"? L'operazione non è reversibile.`
+    `Eliminare definitivamente "${displayTitle.value}"? L'operazione non è reversibile.`
   );
   if (!confirmed) return;
 
@@ -87,8 +96,54 @@ async function handleDelete() {
   }
 }
 
+function startEditText() {
+  editedText.value = note.value?.extracted_text || '';
+  saveTextError.value = null;
+  isEditingText.value = true;
+}
+
+function cancelEditText() {
+  isEditingText.value = false;
+  saveTextError.value = null;
+}
+
+async function handleSaveText() {
+  if (isSavingText.value) return;
+
+  isSavingText.value = true;
+  saveTextError.value = null;
+  try {
+    const response = await api.patch(`/notes/${props.noteId}`, {
+      extracted_text: editedText.value,
+    });
+    // Il backend ritorna la nota aggiornata, titolo ricalcolato incluso.
+    note.value = response.data;
+    isEditingText.value = false;
+    emit('updated', note.value);
+  } catch (error) {
+    console.error('Errore nel salvataggio della trascrizione', error);
+    saveTextError.value = 'Non riesco a salvare le modifiche. Riprova.';
+  } finally {
+    isSavingText.value = false;
+  }
+}
+
+function hasUnsavedTextEdits() {
+  return isEditingText.value && editedText.value !== (note.value?.extracted_text || '');
+}
+
+function requestClose() {
+  if (hasUnsavedTextEdits()) {
+    const confirmed = window.confirm(
+      'Ci sono modifiche alla trascrizione non salvate. Chiudere comunque?'
+    );
+    if (!confirmed) return;
+  }
+  emit('close');
+}
+
 function handleKeydown(event) {
-  if (event.key === 'Escape') emit('close');
+  if (event.key === 'Escape') requestClose();
 }
 
 onMounted(() => {
@@ -99,30 +154,39 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 </script>
 
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-content detail-modal" role="dialog" aria-modal="true" :aria-label="note?.filename || 'Dettaglio documento'">
+  <div class="modal-overlay" @click.self="requestClose">
+    <div class="modal-content detail-modal" role="dialog" aria-modal="true" :aria-label="displayTitle || 'Dettaglio documento'">
       <div v-if="isLoading" class="modal-state">
         <div class="spinner"></div>
       </div>
 
       <div v-else-if="loadError" class="modal-state">
         <p>{{ loadError }}</p>
-        <button type="button" class="btn-secondary" @click="$emit('close')">Chiudi</button>
+        <button type="button" class="btn-secondary" @click="requestClose">Chiudi</button>
       </div>
 
       <template v-else-if="note">
         <header>
-          <h3>{{ note.filename }}</h3>
+          <h3>{{ displayTitle }}</h3>
           <div class="actions">
-            <div class="view-toggle">
-              <button type="button" :class="{ active: activeView === 'document' }" @click="activeView = 'document'">{{ documentTabLabel }}</button>
-              <button type="button" :class="{ active: activeView === 'text' }" @click="activeView = 'text'">{{ textTabLabel }}</button>
-            </div>
-            <a :href="fileUrl" :download="note.filename" class="btn-secondary">Scarica</a>
-            <button type="button" class="btn-danger" :disabled="isDeleting" @click="handleDelete">
-              {{ isDeleting ? 'Eliminazione…' : 'Elimina' }}
-            </button>
-            <button type="button" class="close-btn" @click="$emit('close')" aria-label="Chiudi">✕</button>
+            <template v-if="activeView === 'text' && isEditingText">
+              <button type="button" class="btn-secondary" :disabled="isSavingText" @click="cancelEditText">Annulla</button>
+              <button type="button" class="btn-primary" :disabled="isSavingText" @click="handleSaveText">
+                {{ isSavingText ? 'Salvataggio…' : 'Salva' }}
+              </button>
+            </template>
+            <template v-else>
+              <div class="view-toggle">
+                <button type="button" :class="{ active: activeView === 'document' }" @click="activeView = 'document'">{{ documentTabLabel }}</button>
+                <button type="button" :class="{ active: activeView === 'text' }" @click="activeView = 'text'">{{ textTabLabel }}</button>
+              </div>
+              <button v-if="activeView === 'text'" type="button" class="btn-secondary" @click="startEditText">Modifica</button>
+              <a :href="fileUrl" :download="note.filename" class="btn-secondary">Scarica</a>
+              <button type="button" class="btn-danger" :disabled="isDeleting" @click="handleDelete">
+                {{ isDeleting ? 'Eliminazione…' : 'Elimina' }}
+              </button>
+              <button type="button" class="close-btn" @click="requestClose" aria-label="Chiudi">✕</button>
+            </template>
           </div>
         </header>
 
@@ -130,8 +194,19 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 
         <div class="content-split">
           <div v-if="activeView === 'text'" class="extracted-text">
-            <p v-if="note.extracted_text">{{ note.extracted_text }}</p>
-            <p v-else class="empty-note">{{ emptyTextMessage }}</p>
+            <template v-if="isEditingText">
+              <textarea
+                v-model="editedText"
+                class="edit-textarea"
+                :disabled="isSavingText"
+                placeholder="Scrivi o correggi qui la trascrizione…"
+              ></textarea>
+              <p v-if="saveTextError" class="save-text-error">{{ saveTextError }}</p>
+            </template>
+            <template v-else>
+              <p v-if="note.extracted_text">{{ note.extracted_text }}</p>
+              <p v-else class="empty-note">{{ emptyTextMessage }}</p>
+            </template>
           </div>
 
           <div v-else class="preview-area">
@@ -177,6 +252,10 @@ h3 { margin: 0; font-family: var(--font-display); font-size: 22px; color: var(--
 .view-toggle button.active { background: var(--color-surface-raised); color: var(--color-ink); box-shadow: 0 1px 2px rgba(30, 39, 35, 0.08); }
 .btn-secondary { background: var(--color-surface-raised); color: var(--color-ink); font-weight: 500; font-size: 13.5px; padding: 9px 18px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; text-decoration: none; transition: border-color 0.15s ease, background-color 0.15s ease; display: inline-flex; align-items: center; }
 .btn-secondary:hover { background: var(--color-canvas); border-color: var(--color-border-strong); }
+.btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary { background: var(--color-accent); color: #fff8f4; font-weight: 600; font-size: 13.5px; padding: 9px 18px; border: none; border-radius: var(--radius-sm); cursor: pointer; transition: background-color 0.15s ease, transform 0.15s ease; }
+.btn-primary:hover:not(:disabled) { background: var(--color-accent-hover); transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 .close-btn { background: var(--color-canvas); border: none; width: 34px; height: 34px; border-radius: 50%; font-size: 14px; cursor: pointer; color: var(--color-ink-muted); transition: background-color 0.15s ease; display: flex; align-items: center; justify-content: center; }
 .close-btn:hover { background: var(--color-border); color: var(--color-ink); }
 .btn-danger { background: var(--color-surface-raised); color: #c0392b; font-weight: 500; font-size: 13.5px; padding: 9px 18px; border: 1px solid #e3b0aa; border-radius: var(--radius-sm); cursor: pointer; transition: border-color 0.15s ease, background-color 0.15s ease; }
@@ -194,6 +273,23 @@ h3 { margin: 0; font-family: var(--font-display); font-size: 22px; color: var(--
 .extracted-text { width: 100%; padding: 28px 32px; overflow-y: auto; }
 .extracted-text p { text-align: left; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.7; color: var(--color-ink); white-space: pre-wrap; margin: 0; }
 .empty-note { font-family: var(--font-ui) !important; color: var(--color-ink-muted) !important; }
+.edit-textarea {
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  resize: vertical;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.7;
+  padding: 16px;
+}
+.edit-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+.edit-textarea:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.save-text-error { margin: 12px 0 0; padding: 10px 14px; background: #fdecea; color: #c0392b; border-radius: var(--radius-sm); font-size: 13px; }
 
 @media (max-width: 640px) {
   .detail-modal { height: 92vh; padding: 20px; }

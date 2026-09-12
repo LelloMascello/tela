@@ -1,12 +1,10 @@
-import os
 import pymupdf
 import docx
 import easyocr
 from pptx import Presentation
 import openpyxl
 from faster_whisper import WhisperModel
-from app.core.database import get_db_connection
-from app.services.search import index_note
+from app.core.database import get_db_connection, update_note_text
 
 _ocr_reader = None
 _whisper_model = None
@@ -75,34 +73,26 @@ def extract_text(filepath: str, extension: str) -> str:
 
 def process_note_background(note_id: str, filepath: str, extension: str):
     """Task eseguito in background da FastAPI per non bloccare l'upload."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
     try:
         # 1. Estrazione del testo
         extracted_text = extract_text(filepath, extension)
-        
-        # 2. Aggiornamento dello stato e salvataggio del testo in SQLite
-        cursor.execute(
-            "UPDATE notes SET status = ?, extracted_text = ? WHERE id = ?",
-            ('completato', extracted_text, note_id)
-        )
-        conn.commit()
+
+        # 2. Salva il testo estratto: update_note_text si occupa di
+        #    ricalcolare il titolo automatico (primi 30 caratteri + "..."),
+        #    aggiornare lo status e sincronizzare MeiliSearch, tutto in un
+        #    solo posto condiviso con l'endpoint di modifica manuale.
+        update_note_text(note_id, extracted_text, status='completato')
         print(f"Elaborazione completata per la nota {note_id}")
-        
-        # Ricaviamo il filename originale dal percorso fisico per indicizzarlo
-        filename = os.path.basename(filepath)
-        
-        # Invia i dati a MeiliSearch per l'indicizzazione
-        index_note(note_id, filename, extension, extracted_text)
-        
+
     except Exception as e:
         print(f"Fallita elaborazione per {note_id}: {e}")
-        # In caso di errore, aggiorniamo lo stato in modo che il frontend possa segnalarlo
+        # In caso di errore aggiorniamo solo lo status, senza toccare
+        # l'eventuale testo già estratto (né il titolo).
+        conn = get_db_connection()
+        cursor = conn.cursor()
         cursor.execute(
             "UPDATE notes SET status = ? WHERE id = ?",
             ('errore', note_id)
         )
         conn.commit()
-    finally:
         conn.close()

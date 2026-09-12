@@ -49,7 +49,7 @@ const formattedDate = computed(() => {
       <span class="ext-stamp">{{ extensionLabel }}</span>
     </div>
     <div class="card-info">
-      <h4>{{ note.filename || 'Documento senza nome' }}</h4>
+      <h4 :title="note.title || note.filename">{{ note.title || note.filename || 'Documento senza nome' }}</h4>
       <div class="status-row">
         <span class="status-dot" :class="statusClass"></span>
         <p>{{ statusText }}</p>

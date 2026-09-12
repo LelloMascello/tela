@@ -3,16 +3,21 @@ import uuid
 import shutil
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Query, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 # Importazioni attivate dai moduli core appena creati
 from app.core.config import UPLOAD_DIR
-from app.core.database import get_db_connection, delete_note
+from app.core.database import get_db_connection, delete_note, update_note_text
 
 # Da decommentare quando scriveremo services/extractor.py e services/search.py
 from app.services.extractor import process_note_background
 from app.services.search import query_notes
 
 router = APIRouter(prefix="/api", tags=["Notes"])
+
+
+class UpdateTranscriptionPayload(BaseModel):
+    extracted_text: str
 
 @router.post("/upload")
 async def upload_note(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
@@ -59,9 +64,12 @@ def list_notes(limit: int = 50, offset: int = 0):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Recuperiamo gli appunti più recenti escludendo il testo estratto per alleggerire la risposta
+    # Recuperiamo gli appunti più recenti escludendo il testo estratto per alleggerire la risposta.
+    # COALESCE(title, filename): finché l'estrazione non è completata (e il
+    # titolo automatico non è ancora stato calcolato) mostriamo il filename
+    # come placeholder, invece di un titolo nullo.
     cursor.execute(
-        "SELECT id, filename, extension, status, created_at FROM notes ORDER BY created_at DESC LIMIT ? OFFSET ?", 
+        "SELECT id, filename, extension, status, COALESCE(title, filename) AS title, created_at FROM notes ORDER BY created_at DESC LIMIT ? OFFSET ?", 
         (limit, offset)
     )
     notes = cursor.fetchall()
@@ -74,7 +82,10 @@ def list_notes(limit: int = 50, offset: int = 0):
 def get_note_details(note_id: str):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM notes WHERE id = ?", (note_id,))
+    cursor.execute(
+        "SELECT id, filename, extension, status, extracted_text, COALESCE(title, filename) AS title, created_at FROM notes WHERE id = ?",
+        (note_id,)
+    )
     note = cursor.fetchone()
     conn.close()
     
@@ -82,6 +93,17 @@ def get_note_details(note_id: str):
         raise HTTPException(status_code=404, detail="Nota non trovata")
         
     return dict(note)
+
+@router.patch("/notes/{note_id}")
+def update_note_transcription(note_id: str, payload: UpdateTranscriptionPayload):
+    """Salva la trascrizione corretta a mano dall'utente nel DetailModal.
+    Il titolo viene ricalcolato automaticamente dal nuovo testo."""
+    updated_note = update_note_text(note_id, payload.extracted_text)
+
+    if updated_note is None:
+        raise HTTPException(status_code=404, detail="Nota non trovata")
+
+    return updated_note
 
 @router.get("/notes/{note_id}/file")
 def download_original_file(note_id: str):
