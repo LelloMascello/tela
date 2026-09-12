@@ -142,33 +142,41 @@ onMounted(fetchNotes);
 </template>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,600&family=Caveat:wght@500;600;700&family=Special+Elite&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
-  --color-canvas: #edf0ea;
-  --color-surface: #f4f3ee;
-  --color-surface-raised: #ffffff;
-  --color-ink: #1e2723;
-  --color-ink-muted: #5f6a60;
-  --color-border: #dbdfd3;
-  --color-border-strong: #c2c8b8;
-  --color-accent: #a5472c;
-  --color-accent-hover: #8a3a23;
-  --color-accent-soft: #f3e2da;
-  --color-status-pending: #b9862c;
+  /* Paper & ink — a writing desk: parchment, iron-gall ink, and taped-on scraps */
+  --color-page: #ece1c9;
+  --color-card: #faf5e7;
+  --color-card-raised: #fffcf4;
+  --color-ink: #2b241d;
+  --color-ink-soft: #5c5142;
+  --color-line: #d8c8a0;
+  --color-line-strong: #c1aa78;
+  --color-stamp: #a3452b;
+  --color-stamp-hover: #85371f;
+  --color-stamp-wash: #f0ddd0;
+  --color-tape-1: #d9b65f;
+  --color-tape-2: #7f9c8f;
+  --color-tape-3: #c88f85;
+  --color-status-pending: #a97a2a;
   --color-status-done: #3f6b4c;
-  --color-status-error: #b23b3b;
+  --color-status-error: #ab3a35;
 
   --font-display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-hand: 'Caveat', cursive;
   --font-ui: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', 'Menlo', 'Consolas', monospace;
+  --font-stamp: 'Special Elite', var(--font-mono);
 
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-modal: 14px;
+  --radius-card: 3px 16px 4px 16px;
+  --radius-stamp: 3px;
 
-  --shadow-card: 0 1px 2px rgba(30, 39, 35, 0.06), 0 10px 24px -14px rgba(30, 39, 35, 0.22);
-  --shadow-modal: 0 32px 64px -20px rgba(18, 24, 20, 0.4);
+  --shadow-card: 0 1px 1px rgba(43, 36, 29, 0.09), 0 12px 22px -14px rgba(43, 36, 29, 0.4);
+  --shadow-modal: 0 40px 70px -24px rgba(20, 15, 10, 0.5);
 }
 
 * { box-sizing: border-box; }
@@ -176,14 +184,19 @@ onMounted(fetchNotes);
 body {
   margin: 0;
   font-family: var(--font-ui);
-  background-color: var(--color-canvas);
   color: var(--color-ink);
+  background-color: var(--color-page);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(43, 36, 29, 0.05) 1px, transparent 0),
+    radial-gradient(circle at 1px 1px, rgba(43, 36, 29, 0.03) 1px, transparent 0);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 2px 3px;
 }
 
 button, input { font-family: inherit; }
 
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-stamp);
   outline-offset: 2px;
 }
 
@@ -196,7 +209,7 @@ button, input { font-family: inherit; }
   }
 }
 
-.app-layout { margin: 0 auto; padding: 48px clamp(24px, 5vw, 96px) 80px; }
+.app-layout { margin: 0 auto; padding: 48px clamp(24px, 5vw, 96px) 80px; max-width: 1400px; }
 
 .main-header { margin-bottom: 4px; }
 
@@ -210,14 +223,20 @@ button, input { font-family: inherit; }
 
 .header-titles h1 {
   font-family: var(--font-display);
-  font-size: 34px;
+  font-size: 36px;
   font-weight: 600;
-  margin: 0 0 6px 0;
-  letter-spacing: -0.2px;
-  color: var(--color-accent);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.3px;
+  color: var(--color-stamp);
 }
 
-.header-titles p { color: var(--color-ink-muted); font-size: 15px; margin: 0; }
+.header-titles p {
+  font-family: var(--font-hand);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--color-ink-soft);
+  margin: 0;
+}
 
 .upload-fab {
   flex-shrink: 0;
@@ -227,20 +246,20 @@ button, input { font-family: inherit; }
   height: 46px;
   padding: 0 20px;
   border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: #fff8f4;
+  background: var(--color-stamp);
+  color: #fbf3ea;
   border: none;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.15s ease, background-color 0.15s ease;
 }
-.upload-fab:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
+.upload-fab:hover { background: var(--color-stamp-hover); transform: rotate(-2deg) translateY(-1px); }
 
 .filters {
   display: flex;
   gap: 4px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-line);
   margin: 28px 0 28px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -253,48 +272,62 @@ button, input { font-family: inherit; }
   border: none;
   border-bottom: 2px solid transparent;
   background: transparent;
-  color: var(--color-ink-muted);
+  color: var(--color-ink-soft);
   font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
 .filter-tab:hover { color: var(--color-ink); }
-.filter-tab.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+.filter-tab.active {
+  color: var(--color-stamp);
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 7px;
+}
 
 .content-area { min-height: 240px; }
 
 .grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 16px;
+  gap: 22px 18px;
 }
 
 .skeleton-card {
   height: 208px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(100deg, var(--color-surface-raised) 30%, var(--color-surface) 50%, var(--color-surface-raised) 70%);
+  border-radius: var(--radius-card);
+  background: linear-gradient(100deg, var(--color-card) 30%, var(--color-page) 50%, var(--color-card) 70%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-line);
 }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
 .state-message {
-  color: var(--color-ink-muted);
+  font-family: var(--font-hand);
+  font-size: 21px;
+  font-weight: 500;
+  color: var(--color-ink-soft);
   text-align: center;
   padding: 64px 24px;
-  font-size: 15px;
 }
-.state-message--error { color: var(--color-status-error); }
+.state-message--error {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--color-status-error);
+}
 
 @media (max-width: 640px) {
   .app-layout { padding: 32px 16px 56px; }
   .header-top { flex-direction: column; align-items: stretch; }
   .upload-fab { justify-content: center; }
-  .header-titles h1 { font-size: 28px; }
+  .header-titles h1 { font-size: 30px; }
   .filters { margin: 22px 0 22px; }
 }
 

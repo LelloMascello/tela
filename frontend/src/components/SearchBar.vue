@@ -48,25 +48,27 @@ onBeforeUnmount(() => clearTimeout(debounceTimer));
   left: 16px;
   width: 18px;
   height: 18px;
-  color: var(--color-ink-muted);
+  color: var(--color-ink-soft);
   pointer-events: none;
+  z-index: 1;
 }
 .search-container input {
   width: 100%;
-  padding: 14px 40px 14px 46px;
+  padding: 14px 40px 14px 50px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-raised);
+  border: 1px solid var(--color-line);
+  background-color: var(--color-card-raised);
+  background-image: linear-gradient(to right, transparent 38.5px, rgba(163, 69, 43, 0.38) 38.5px, rgba(163, 69, 43, 0.38) 40.5px, transparent 40.5px);
   font-size: 14.5px;
   color: var(--color-ink);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   outline: none;
 }
 .search-container input:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
+  border-color: var(--color-stamp);
+  box-shadow: 0 0 0 3px var(--color-stamp-wash);
 }
-.search-container input::placeholder { color: var(--color-ink-muted); }
+.search-container input::placeholder { color: var(--color-ink-soft); }
 .clear-btn {
   position: absolute;
   right: 12px;
@@ -74,8 +76,8 @@ onBeforeUnmount(() => clearTimeout(debounceTimer));
   height: 22px;
   border-radius: 50%;
   border: none;
-  background: var(--color-canvas);
-  color: var(--color-ink-muted);
+  background: var(--color-page);
+  color: var(--color-ink-soft);
   font-size: 11px;
   cursor: pointer;
   display: flex;
@@ -83,5 +85,5 @@ onBeforeUnmount(() => clearTimeout(debounceTimer));
   justify-content: center;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
-.clear-btn:hover { background: var(--color-border); color: var(--color-ink); }
+.clear-btn:hover { background: var(--color-line); color: var(--color-ink); }
 </style>
