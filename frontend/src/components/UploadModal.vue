@@ -81,7 +81,9 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
     <div class="modal-content" role="dialog" aria-modal="true" aria-label="Carica nuovi documenti">
       <header>
         <h3>Carica nuovi documenti</h3>
-        <button type="button" class="close-btn" :disabled="isUploading" @click="$emit('close')" aria-label="Chiudi">✕</button>
+        <button type="button" class="close-btn" :disabled="isUploading" @click="$emit('close')" aria-label="Chiudi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </header>
 
       <div
@@ -92,6 +94,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
         @drop.prevent="handleDrop"
         @click="openFileDialog"
       >
+        <svg class="drop-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
         <p>Trascina qui i tuoi file o clicca per sfogliare</p>
         <p class="subtitle">Immagini, PDF, Word, PowerPoint, Excel, audio e video — anche più file insieme</p>
         <input
@@ -118,7 +121,9 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
             class="queue-dismiss"
             @click="dismiss(item.id)"
             aria-label="Rimuovi dalla lista"
-          >✕</button>
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </li>
       </ul>
       <p v-if="hasFiles && !isUploading" class="queue-hint">
@@ -129,77 +134,71 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 </template>
 
 <style scoped>
-.modal-overlay { position: fixed; inset: 0; background: rgba(30, 24, 18, 0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(15, 16, 14, 0.45); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
 .modal-content {
-  background: var(--color-card-raised);
-  padding: 30px;
-  border-radius: var(--radius-modal);
+  background: var(--surface);
+  padding: 28px;
+  border-radius: var(--radius-lg);
   width: 100%;
-  max-width: 520px;
+  max-width: 500px;
   max-height: calc(100vh - 40px);
   max-height: calc(100dvh - 40px);
   overflow-y: auto;
-  box-shadow: var(--shadow-modal);
-  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--line);
 }
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
-h3 { margin: 0; font-family: var(--font-display); font-size: 21px; font-weight: 600; color: var(--color-ink); }
-.close-btn { background: var(--color-page); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 13px; cursor: pointer; color: var(--color-ink-soft); transition: background-color 0.15s ease; }
-.close-btn:hover:not(:disabled) { background: var(--color-line); color: var(--color-ink); }
+h3 { margin: 0; font-family: var(--font-mono); font-size: 17px; font-weight: 600; color: var(--ink); }
+.close-btn { background: transparent; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; color: var(--ink-faint); transition: background-color 0.15s ease, color 0.15s ease; display: flex; align-items: center; justify-content: center; }
+.close-btn svg { width: 15px; height: 15px; }
+.close-btn:hover:not(:disabled) { background: var(--surface-sunken); color: var(--ink); }
 .close-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .drop-area {
-  position: relative;
-  border: 2px dashed var(--color-line-strong);
+  border: 1.5px dashed var(--line-strong);
   border-radius: var(--radius-md);
-  padding: 44px 24px;
+  padding: 40px 24px;
   text-align: center;
   transition: border-color 0.15s ease, background-color 0.15s ease;
-  background: var(--color-page);
+  background: var(--canvas);
   cursor: pointer;
 }
-.drop-area::before {
-  content: '✂';
-  position: absolute;
-  top: -13px;
-  left: 22px;
-  background: var(--color-card-raised);
-  color: var(--color-ink-soft);
-  padding: 0 6px;
-  font-size: 14px;
-  transform: rotate(-8deg);
-}
-.drop-area:hover, .drop-area.is-dragging { border-color: var(--color-stamp); background: var(--color-stamp-wash); }
-.drop-area p { margin: 0; color: var(--color-ink); font-size: 14.5px; }
+.drop-icon { color: var(--ink-faint); margin-bottom: 12px; transition: color 0.15s ease; }
+.drop-area:hover, .drop-area.is-dragging { border-color: var(--accent); background: var(--accent-wash); }
+.drop-area:hover .drop-icon, .drop-area.is-dragging .drop-icon { color: var(--accent); }
+.drop-area p { margin: 0; color: var(--ink); font-size: 14.5px; }
 .hidden-input { display: none; }
 .upload-btn {
   display: inline-block;
-  background: var(--color-stamp);
-  color: #fbf3ea;
-  font-weight: 500;
-  font-size: 14px;
-  padding: 11px 22px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 10px 20px;
   border-radius: var(--radius-sm);
   margin-top: 16px;
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.15s ease;
+  transition: background-color 0.15s ease;
 }
-.upload-btn:hover { background: var(--color-stamp-hover); transform: rotate(-1.5deg); }
-.subtitle { font-size: 13px; color: var(--color-ink-soft); margin-top: 8px !important; }
+.drop-area:hover .upload-btn, .drop-area.is-dragging .upload-btn { background: var(--accent-strong); }
+.subtitle { font-size: 13px; color: var(--ink-soft); margin-top: 8px !important; }
+
 .upload-queue { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
-.queue-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--color-line); border-radius: var(--radius-sm); background: var(--color-page); }
-.queue-name { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 12.5px; color: var(--color-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.queue-status { font-family: var(--font-stamp); font-size: 12px; font-weight: 400; flex-shrink: 0; max-width: 180px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.queue-status.pending, .queue-status.uploading { color: var(--color-status-pending); }
-.queue-status.done { color: var(--color-status-done); }
-.queue-status.error { color: var(--color-status-error); }
-.queue-action { border: none; background: none; color: var(--color-stamp); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; flex-shrink: 0; }
-.queue-dismiss { border: none; background: none; color: var(--color-ink-soft); font-size: 11px; cursor: pointer; padding: 2px; flex-shrink: 0; }
-.queue-dismiss:hover { color: var(--color-ink); }
-.queue-hint { font-family: var(--font-hand); font-size: 16px; color: var(--color-ink-soft); text-align: center; margin: 14px 0 0; }
+.queue-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--canvas); }
+.queue-name { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 12.5px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.queue-status { font-size: 12px; font-weight: 500; flex-shrink: 0; max-width: 170px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.queue-status.pending, .queue-status.uploading { color: var(--status-pending); }
+.queue-status.done { color: var(--status-done); }
+.queue-status.error { color: var(--status-error); }
+.queue-action { border: none; background: none; color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; flex-shrink: 0; }
+.queue-dismiss { border: none; background: none; color: var(--ink-faint); cursor: pointer; padding: 2px; flex-shrink: 0; display: flex; }
+.queue-dismiss svg { width: 12px; height: 12px; }
+.queue-dismiss:hover { color: var(--ink); }
+.queue-hint { font-size: 13.5px; color: var(--ink-soft); text-align: center; margin: 14px 0 0; }
 
 @media (max-width: 480px) {
-  .modal-content { padding: 22px; }
-  .drop-area { padding: 32px 16px; }
+  .modal-content { padding: 20px; }
+  .drop-area { padding: 30px 16px; }
   .queue-item { flex-wrap: wrap; }
   .queue-name { flex-basis: 100%; }
   .queue-status { max-width: none; text-align: left; }
@@ -208,8 +207,9 @@ h3 { margin: 0; font-family: var(--font-display); font-size: 21px; font-weight: 
 /* Telefoni in orizzontale: meno spazio verticale nella zona di trascinamento */
 @media (max-height: 480px) {
   .modal-overlay { padding: 12px; align-items: flex-start; }
-  .modal-content { margin-top: 12px; padding: 18px 22px; }
-  .drop-area { padding: 20px 16px; }
+  .modal-content { margin-top: 12px; padding: 18px 20px; }
+  .drop-area { padding: 18px 16px; }
+  .drop-icon { width: 22px; height: 22px; margin-bottom: 6px; }
   .drop-area p { font-size: 13.5px; }
   .upload-queue { max-height: 140px; }
 }

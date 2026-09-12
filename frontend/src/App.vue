@@ -33,6 +33,17 @@ const filteredNotes = computed(() => {
   return notes.value.filter((note) => exts.includes((note.extension || '').toLowerCase()));
 });
 
+// Conteggi per etichetta filtro, calcolati sul set di note attualmente
+// caricato (l'intero archivio, o i risultati di ricerca se si sta cercando).
+const filterCounts = computed(() => {
+  const counts = { Tutti: notes.value.length };
+  for (const key of Object.keys(filterExtensions)) {
+    const exts = filterExtensions[key];
+    counts[key] = notes.value.filter((note) => exts.includes((note.extension || '').toLowerCase())).length;
+  }
+  return counts;
+});
+
 const fetchNotes = async () => {
   isLoading.value = true;
   loadError.value = null;
@@ -76,58 +87,77 @@ onMounted(fetchNotes);
 </script>
 
 <template>
-  <div class="app-layout">
-    <header class="main-header">
-      <div class="header-top">
-        <div class="header-titles">
-          <h1>TELA</h1>
-          <p>Tutto ciò che hai archiviato, indicizzato e reso ricercabile.</p>
-        </div>
-        <button type="button" class="upload-fab" @click="isUploadModalOpen = true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          <span>Carica</span>
-        </button>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <h1>TELA</h1>
+        <p>Tutto ciò che hai archiviato, indicizzato e reso ricercabile.</p>
       </div>
-
-      <SearchBar @search="handleSearch" />
+      <button type="button" class="btn-primary" @click="isUploadModalOpen = true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        <span>Carica</span>
+      </button>
     </header>
 
-    <nav class="filters" aria-label="Filtra per tipo">
+    <SearchBar @search="handleSearch" />
+
+    <nav class="filter-row" aria-label="Filtra per tipo">
       <button
         v-for="filter in filters"
         :key="filter"
         type="button"
-        :class="['filter-tab', { active: activeFilter === filter }]"
+        :class="['filter-chip', { active: activeFilter === filter }]"
         :aria-pressed="activeFilter === filter"
         @click="activeFilter = filter"
       >
         {{ filter }}
+        <span class="count">{{ filterCounts[filter] ?? 0 }}</span>
       </button>
     </nav>
 
-    <main class="content-area">
-      <div v-if="isLoading" class="grid-container" aria-busy="true" aria-label="Caricamento documenti">
-        <div v-for="n in 6" :key="n" class="skeleton-card"></div>
+    <main class="archive">
+      <div v-if="isLoading" class="list-header" aria-hidden="true">
+        <span></span><span>Documento</span><span>Stato</span><span>Data</span>
       </div>
 
-      <p v-else-if="loadError" class="state-message state-message--error">{{ loadError }}</p>
+      <ul v-if="isLoading" class="note-list" aria-busy="true" aria-label="Caricamento documenti">
+        <li v-for="n in 6" :key="n" class="skeleton-row">
+          <span class="sk sk-icon"></span>
+          <span class="sk sk-title"></span>
+          <span class="sk sk-status"></span>
+          <span class="sk sk-date"></span>
+        </li>
+      </ul>
 
-      <p v-else-if="filteredNotes.length === 0 && currentQuery.length >= 2" class="state-message">
-        Nessun risultato per «{{ currentQuery }}». Prova un altro termine.
-      </p>
-
-      <p v-else-if="filteredNotes.length === 0" class="state-message">
-        Non ci sono ancora documenti qui. Carica il primo per iniziare.
-      </p>
-
-      <div v-else class="grid-container">
-        <NoteCard
-          v-for="note in filteredNotes"
-          :key="note.id"
-          :note="note"
-          @open-detail="selectedNoteId = note.id"
-        />
+      <div v-else-if="loadError" class="state">
+        <p class="state-title">L'archivio non risponde</p>
+        <p class="state-body">{{ loadError }}</p>
       </div>
+
+      <div v-else-if="filteredNotes.length === 0 && currentQuery.length >= 2" class="state">
+        <p class="state-title">Nessun risultato per «{{ currentQuery }}»</p>
+        <p class="state-body">Prova un altro termine o controlla i filtri attivi.</p>
+      </div>
+
+      <div v-else-if="filteredNotes.length === 0" class="state">
+        <p class="state-title">L'archivio è vuoto</p>
+        <p class="state-body">Carica il primo documento per iniziare a costruirlo.</p>
+        <button type="button" class="btn-primary" @click="isUploadModalOpen = true">Carica un documento</button>
+      </div>
+
+      <template v-else>
+        <div class="list-header">
+          <span></span><span>Documento</span><span>Stato</span><span>Data</span>
+        </div>
+        <ul class="note-list">
+          <NoteCard
+            v-for="note in filteredNotes"
+            :key="note.id"
+            :note="note"
+            @open-detail="selectedNoteId = note.id"
+          />
+        </ul>
+      </template>
     </main>
 
     <UploadModal v-if="isUploadModalOpen" @close="isUploadModalOpen = false" @uploaded="fetchNotes" />
@@ -141,217 +171,162 @@ onMounted(fetchNotes);
   </div>
 </template>
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,600&family=Caveat:wght@500;600;700&family=Special+Elite&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
-:root {
-  /* Paper & ink — a writing desk: parchment, iron-gall ink, and taped-on scraps */
-  --color-page: #ece1c9;
-  --color-card: #faf5e7;
-  --color-card-raised: #fffcf4;
-  --color-ink: #2b241d;
-  --color-ink-soft: #5c5142;
-  --color-line: #d8c8a0;
-  --color-line-strong: #c1aa78;
-  --color-stamp: #a3452b;
-  --color-stamp-hover: #85371f;
-  --color-stamp-wash: #f0ddd0;
-  --color-tape-1: #d9b65f;
-  --color-tape-2: #7f9c8f;
-  --color-tape-3: #c88f85;
-  --color-status-pending: #a97a2a;
-  --color-status-done: #3f6b4c;
-  --color-status-error: #ab3a35;
-
-  --font-display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
-  --font-hand: 'Caveat', cursive;
-  --font-ui: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', 'Menlo', 'Consolas', monospace;
-  --font-stamp: 'Special Elite', var(--font-mono);
-
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-modal: 14px;
-  --radius-card: 3px 16px 4px 16px;
-  --radius-stamp: 3px;
-
-  --shadow-card: 0 1px 1px rgba(43, 36, 29, 0.09), 0 12px 22px -14px rgba(43, 36, 29, 0.4);
-  --shadow-modal: 0 40px 70px -24px rgba(20, 15, 10, 0.5);
+<style scoped>
+.app-shell {
+  margin: 0 auto;
+  padding: 56px clamp(24px, 5vw, 96px) 96px;
+  max-width: 1080px;
+  width: 100%;
 }
 
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  font-family: var(--font-ui);
-  color: var(--color-ink);
-  background-color: var(--color-page);
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(43, 36, 29, 0.05) 1px, transparent 0),
-    radial-gradient(circle at 1px 1px, rgba(43, 36, 29, 0.03) 1px, transparent 0);
-  background-size: 3px 3px, 7px 7px;
-  background-position: 0 0, 2px 3px;
-}
-
-button, input { font-family: inherit; }
-
-:focus-visible {
-  outline: 2px solid var(--color-stamp);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-.app-layout { margin: 0 auto; padding: 48px clamp(24px, 5vw, 96px) 80px; max-width: 1400px; }
-
-.main-header { margin-bottom: 4px; }
-
-.header-top {
+.topbar {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   gap: 24px;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 
-.header-titles h1 {
-  font-family: var(--font-display);
-  font-size: 36px;
+.brand h1 {
+  font-family: var(--font-mono);
+  font-size: 26px;
   font-weight: 600;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.3px;
-  color: var(--color-stamp);
+  letter-spacing: 0.01em;
+  margin: 0 0 6px;
+  color: var(--ink);
 }
-
-.header-titles p {
-  font-family: var(--font-hand);
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--color-ink-soft);
+.brand p {
+  font-size: 15px;
+  color: var(--ink-soft);
   margin: 0;
+  max-width: 46ch;
 }
 
-.upload-fab {
+.btn-primary {
   flex-shrink: 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 46px;
-  padding: 0 20px;
+  height: 42px;
+  padding: 0 18px;
   border-radius: var(--radius-sm);
-  background: var(--color-stamp);
-  color: #fbf3ea;
+  background: var(--accent);
+  color: #fff;
   border: none;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s ease, background-color 0.15s ease;
+  transition: background-color 0.15s ease, transform 0.1s ease;
 }
-.upload-fab:hover { background: var(--color-stamp-hover); transform: rotate(-2deg) translateY(-1px); }
+.btn-primary:hover { background: var(--accent-strong); }
+.btn-primary:active { transform: translateY(1px); }
 
-.filters {
+.filter-row {
   display: flex;
   gap: 4px;
-  border-bottom: 1px solid var(--color-line);
-  margin: 28px 0 28px;
+  border-bottom: 1px solid var(--line);
+  margin: 28px 0 8px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
-.filters::-webkit-scrollbar { display: none; }
-.filter-tab {
-  padding: 10px 2px;
-  margin-right: 20px;
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 11px 2px;
+  margin-right: 22px;
   border: none;
   border-bottom: 2px solid transparent;
   background: transparent;
-  color: var(--color-ink-soft);
-  font-size: 13.5px;
+  color: var(--ink-soft);
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  text-decoration: none;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
-.filter-tab:hover { color: var(--color-ink); }
-.filter-tab.active {
-  color: var(--color-stamp);
-  text-decoration: underline;
-  text-decoration-style: wavy;
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 7px;
+.filter-chip .count {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
 }
+.filter-chip:hover { color: var(--ink); }
+.filter-chip.active { color: var(--ink); border-bottom-color: var(--accent); }
+.filter-chip.active .count { color: var(--ink-soft); }
 
-.content-area { min-height: 240px; }
+.archive { min-height: 240px; padding-top: 12px; }
 
-.grid-container {
+/* Le colonne qui sotto devono restare identiche a quelle di .note-row in
+   NoteCard.vue, così l'intestazione si allinea con le righe della lista. */
+.list-header, .skeleton-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 22px 18px;
+  grid-template-columns: 36px 1fr 150px 100px;
+  align-items: center;
+  gap: 16px;
+}
+.list-header {
+  padding: 0 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.list-header span:nth-child(3),
+.list-header span:nth-child(4) {
+  text-align: left;
 }
 
-.skeleton-card {
-  height: 208px;
-  border-radius: var(--radius-card);
-  background: linear-gradient(100deg, var(--color-card) 30%, var(--color-page) 50%, var(--color-card) 70%);
+.note-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+
+.skeleton-row { padding: 14px 4px; border-bottom: 1px solid var(--line); }
+.sk {
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(100deg, var(--surface-sunken) 30%, var(--line) 50%, var(--surface-sunken) 70%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
-  border: 1px solid var(--color-line);
 }
+.sk-icon { width: 28px; height: 28px; border-radius: var(--radius-sm); }
+.sk-title { width: 70%; }
+.sk-status { width: 80px; }
+.sk-date { width: 60px; }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
-.state-message {
-  font-family: var(--font-hand);
-  font-size: 21px;
-  font-weight: 500;
-  color: var(--color-ink-soft);
+.state {
+  padding: 72px 24px;
   text-align: center;
-  padding: 64px 24px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-lg);
 }
-.state-message--error {
-  font-family: var(--font-ui);
-  font-size: 15px;
-  font-weight: 400;
-  color: var(--color-status-error);
+.state-title { font-size: 16px; font-weight: 600; color: var(--ink); margin: 0 0 6px; }
+.state-body { font-size: 14px; color: var(--ink-soft); margin: 0 0 18px; }
+.state .btn-primary { margin: 0 auto; }
+
+@media (max-width: 720px) {
+  .list-header { display: none; }
+  .list-header, .skeleton-row { grid-template-columns: 32px 1fr; }
+  .skeleton-row { display: flex; align-items: center; gap: 12px; }
+  .sk-status, .sk-date { display: none; }
 }
 
 @media (max-width: 640px) {
-  .app-layout { padding: 32px 16px 56px; }
-  .header-top { flex-direction: column; align-items: stretch; }
-  .upload-fab { justify-content: center; }
-  .header-titles h1 { font-size: 30px; }
-  .filters { margin: 22px 0 22px; }
-  /* Tocco più comodo per le dita sui tab dei filtri */
-  .filter-tab { padding: 12px 2px; }
-  .grid-container { gap: 18px 14px; }
+  .app-shell { padding: 40px 20px 64px; }
+  .topbar { flex-direction: column; align-items: stretch; }
+  .btn-primary { justify-content: center; }
+  .brand h1 { font-size: 23px; }
+  .filter-row { margin: 22px 0 6px; }
+  .filter-chip { padding: 12px 2px; }
 }
 
-/* Schermi molto piccoli (telefoni compatti, ~360px e sotto) */
 @media (max-width: 380px) {
-  .app-layout { padding: 24px 12px 48px; }
-  .header-titles h1 { font-size: 25px; }
-  .header-titles p { font-size: 17px; }
-  .upload-fab { height: 44px; padding: 0 16px; font-size: 13px; }
-  .filter-tab { font-size: 12.5px; margin-right: 14px; }
-  .grid-container { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px 10px; }
+  .app-shell { padding: 32px 14px 48px; }
+  .brand p { font-size: 14px; }
+  .filter-chip { font-size: 13px; margin-right: 16px; }
 }
 
 @media (min-width: 641px) and (max-width: 1023px) {
-  .app-layout { padding: 44px 32px 72px; }
-}
-
-/* Monitor molto grandi: un filo più di respiro senza perdere la larghezza massima del contenuto */
-@media (min-width: 1600px) {
-  .app-layout { padding-top: 64px; }
-  .header-titles h1 { font-size: 40px; }
-  .grid-container { gap: 26px 20px; }
+  .app-shell { padding: 48px 32px 80px; }
 }
 </style>
