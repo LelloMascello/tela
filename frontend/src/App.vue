@@ -329,9 +329,29 @@ button, input { font-family: inherit; }
   .upload-fab { justify-content: center; }
   .header-titles h1 { font-size: 30px; }
   .filters { margin: 22px 0 22px; }
+  /* Tocco più comodo per le dita sui tab dei filtri */
+  .filter-tab { padding: 12px 2px; }
+  .grid-container { gap: 18px 14px; }
+}
+
+/* Schermi molto piccoli (telefoni compatti, ~360px e sotto) */
+@media (max-width: 380px) {
+  .app-layout { padding: 24px 12px 48px; }
+  .header-titles h1 { font-size: 25px; }
+  .header-titles p { font-size: 17px; }
+  .upload-fab { height: 44px; padding: 0 16px; font-size: 13px; }
+  .filter-tab { font-size: 12.5px; margin-right: 14px; }
+  .grid-container { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px 10px; }
 }
 
 @media (min-width: 641px) and (max-width: 1023px) {
   .app-layout { padding: 44px 32px 72px; }
+}
+
+/* Monitor molto grandi: un filo più di respiro senza perdere la larghezza massima del contenuto */
+@media (min-width: 1600px) {
+  .app-layout { padding-top: 64px; }
+  .header-titles h1 { font-size: 40px; }
+  .grid-container { gap: 26px 20px; }
 }
 </style>

@@ -136,6 +136,9 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
   border-radius: var(--radius-modal);
   width: 100%;
   max-width: 520px;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
   box-shadow: var(--shadow-modal);
   border: 1px solid var(--color-line);
 }
@@ -200,5 +203,14 @@ h3 { margin: 0; font-family: var(--font-display); font-size: 21px; font-weight: 
   .queue-item { flex-wrap: wrap; }
   .queue-name { flex-basis: 100%; }
   .queue-status { max-width: none; text-align: left; }
+}
+
+/* Telefoni in orizzontale: meno spazio verticale nella zona di trascinamento */
+@media (max-height: 480px) {
+  .modal-overlay { padding: 12px; align-items: flex-start; }
+  .modal-content { margin-top: 12px; padding: 18px 22px; }
+  .drop-area { padding: 20px 16px; }
+  .drop-area p { font-size: 13.5px; }
+  .upload-queue { max-height: 140px; }
 }
 </style>

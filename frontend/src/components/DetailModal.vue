@@ -260,6 +260,7 @@ onUnmounted(() => {
   width: 100%;
   max-width: 1080px;
   height: 85vh;
+  height: 85dvh; /* su mobile evita che la barra degli indirizzi tagli il fondo della finestra */
   display: flex;
   flex-direction: column;
   background: var(--color-card-raised);
@@ -330,7 +331,7 @@ h3 { margin: 0; font-family: var(--font-display); font-size: 22px; color: var(--
 .save-status.is-error { font-family: var(--font-ui); font-size: 12.5px; font-weight: 500; color: var(--color-status-error); background: #f7e6e1; }
 
 @media (max-width: 640px) {
-  .detail-modal { height: 92vh; padding: 20px; }
+  .detail-modal { height: 92vh; height: 92dvh; padding: 20px; }
   h3 { font-size: 18px; }
   .actions { width: 100%; justify-content: space-between; }
 }
@@ -338,5 +339,19 @@ h3 { margin: 0; font-family: var(--font-display); font-size: 22px; color: var(--
 @media (max-width: 400px) {
   .view-toggle button { padding: 7px 10px; font-size: 11.5px; }
   .btn-secondary { padding: 9px 14px; font-size: 12.5px; }
+}
+
+/* Telefoni in orizzontale (poca altezza disponibile): la modale usa quasi
+   tutto lo schermo e il textarea rinuncia alla sua altezza minima, così il
+   contenuto non viene tagliato da "overflow: hidden" su .content-split */
+@media (max-height: 500px) {
+  .modal-overlay { padding: 12px; }
+  .detail-modal { height: 96vh; height: 96dvh; padding: 14px 20px; }
+  header { padding-bottom: 10px; }
+  h3 { font-size: 16px; }
+  .actions { gap: 6px; }
+  .view-toggle button { padding: 6px 10px; }
+  .edit-textarea { min-height: 100px; padding: 14px 18px; }
+  .no-preview { padding: 16px; gap: 6px; }
 }
 </style>
