@@ -7,7 +7,7 @@ from telegram.ext import (
 )
 
 from app.core.config import TELEGRAM_BOT_TOKEN, logger
-from app.handlers.search import cerca, download_callback
+from app.handlers.search import cerca, download_callback, paginate_callback
 from app.handlers.site import sito
 from app.handlers.start import help_command, start
 from app.handlers.upload import handle_document, handle_photo
@@ -25,6 +25,7 @@ def build_application() -> Application:
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
     application.add_handler(CallbackQueryHandler(download_callback, pattern=r"^dl:"))
+    application.add_handler(CallbackQueryHandler(paginate_callback, pattern=r"^page:"))
 
     return application
 

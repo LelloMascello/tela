@@ -79,8 +79,6 @@ tela/
 
 ## TO DO
 
-## TO DO
-
 **Migliorare visualizzazione file su Telegram**
 - quando il numero di risultati visualizzabili supera il numero limite aggiungere un ulteriore voce 'carica altri' con l'omonima funzione.
 
@@ -91,9 +89,6 @@ tela/
 - Aggiungere una libreria Python non ufficiale (es. `notebooklm-py`) per interfacciarsi con le API interne di Gemini Notebook tramite cookie di sessione (da configurare nel .env).
 - questo per implementare la logica per creare automaticamente un nuovo notebook utilizzando le trascrizioni (`extracted_text`), dei file risultanti da una ricerca,come fonti di testo (`textContent`), usando il titolo automatico come `displayName` della fonte. 
 - Aggiungere un trigger per questa esportazione (pulsante sulla Web App).
-
-**Ottimizzazione Prestazioni e Stabilità (Hardware a basso consumo)**
-- [ ] Implementare una coda rigorosa (Queue) a **1 singolo worker** per i processi di `extractor.py` (EasyOCR e Faster-Whisper). I file caricati contemporaneamente devono essere elaborati in modo strettamente sequenziale per prevenire crash da Out-Of-Memory (OOM) e il blocco del processore.
 
 **Ottimizzazione Rete e Database**
 - Modificare il meccanismo di polling del bot Telegram in `bot/app/handlers/upload.py`: aumentare l'intervallo di verifica ciclica dello stato di elaborazione (`GET /api/notes/{id}`) a 5-10 secondi. Questo previene un sovraccarico inutile su FastAPI e SQLite nel caso in cui decine di utenti siano in attesa nella coda di elaborazione simultaneamente.
