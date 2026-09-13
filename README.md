@@ -36,6 +36,7 @@ tela/
 │   │   │   ├── config.py        # Variabili globali (UPLOAD_DIR, chiavi Meili etc.)
 │   │   │   └── database.py      # Init SQLite/MeiliSearch, CRUD note (testo, titolo automatico, status)
 │   │   └── services/
+│   │       ├── export.py        # Estrazione trascrizioni in file .zip
 │   │       ├── extractor.py     # Estrazione testo (OCR, PDF, Docx, TXT)
 │   │       └── search.py        # Logica di MeiliSearch (inserimento, indicizzazione e query)
 │   ├── requirements.txt
@@ -78,9 +79,6 @@ tela/
 ```
 
 ## TO DO
-
-**Esportazione in massa di file**
-- aggiungere sia su telegram che su web un pulsante che permetta di scaricare le i file o le trascrizioni di tutti i file risultanti da una ricerca in blocco in uno .zip
 
 **Integrazione Gemini Notebook (ex NotebookLM)**
 - Aggiungere una libreria Python non ufficiale (es. `notebooklm-py`) per interfacciarsi con le API interne di Gemini Notebook tramite cookie di sessione (da configurare nel .env).
