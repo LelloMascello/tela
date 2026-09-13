@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 from telegram import Update
 from telegram.error import BadRequest
@@ -15,10 +16,9 @@ ALLOWED_EXTENSIONS = {
 }
 
 # Quanto aspettare (e con che frequenza controllare) che l'estrazione in
-# background finisca prima di mostrare il titolo automatico. L'OCR e la
-# trascrizione audio/video (Whisper) possono richiedere più tempo dei
-# formati testuali, da qui un timeout generoso.
-TITLE_POLL_INTERVAL_SECONDS = 5
+# background finisca prima di mostrare il titolo automatico. 
+TITLE_POLL_INTERVAL_MIN_SECONDS = 5
+TITLE_POLL_INTERVAL_MAX_SECONDS = 10
 TITLE_POLL_TIMEOUT_SECONDS = 600
 
 
@@ -44,8 +44,9 @@ async def _watch_for_title(status_msg, note_id: str, base_text: str):
     aggiorniamo il messaggio di conferma al posto del filename randomico."""
     elapsed = 0
     while elapsed < TITLE_POLL_TIMEOUT_SECONDS:
-        await asyncio.sleep(TITLE_POLL_INTERVAL_SECONDS)
-        elapsed += TITLE_POLL_INTERVAL_SECONDS
+        interval = random.uniform(TITLE_POLL_INTERVAL_MIN_SECONDS, TITLE_POLL_INTERVAL_MAX_SECONDS)
+        await asyncio.sleep(interval)
+        elapsed += interval
 
         try:
             note = await get_note_details(note_id)
