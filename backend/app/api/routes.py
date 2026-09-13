@@ -2,22 +2,27 @@ import os
 import uuid
 import shutil
 from fastapi import APIRouter, UploadFile, File, BackgroundTasks, Query, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 # Importazioni attivate dai moduli core appena creati
-from app.core.config import UPLOAD_DIR
+from app.core.config import UPLOAD_DIR, EXPORT_MAX_IDS
 from app.core.database import get_db_connection, delete_note, update_note_text
 
 # Da decommentare quando scriveremo services/extractor.py e services/search.py
 from app.services.extractor import process_note_background
 from app.services.search import query_notes
+from app.services.export import build_transcripts_zip
 
 router = APIRouter(prefix="/api", tags=["Notes"])
 
 
 class UpdateTranscriptionPayload(BaseModel):
     extracted_text: str
+
+
+class ExportNotesPayload(BaseModel):
+    ids: list[str]
 
 @router.post("/upload")
 async def upload_note(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
@@ -135,6 +140,34 @@ def delete_note_route(note_id: str):
         "status": "eliminato",
         "message": "Nota eliminata con successo"
     }
+
+@router.post("/notes/export")
+def export_notes_zip(payload: ExportNotesPayload):
+    """Esportazione in massa: raggruppa in un unico .zip le trascrizioni
+    delle note richieste (usato dal pulsante 'Esporta .zip' sulla web app
+    e dal bottone equivalente sul bot Telegram, entrambi passano gli id
+    delle note ottenute da una ricerca).
+    """
+    if not payload.ids:
+        raise HTTPException(status_code=400, detail="Nessun id fornito per l'esportazione")
+
+    if len(payload.ids) > EXPORT_MAX_IDS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Troppe note richieste in un'unica esportazione (max {EXPORT_MAX_IDS})"
+        )
+
+    buffer, exported = build_transcripts_zip(payload.ids)
+
+    if exported == 0:
+        raise HTTPException(status_code=404, detail="Nessuna delle note richieste è stata trovata")
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="tela_trascrizioni.zip"'}
+    )
+
 
 @router.get("/search")
 def search_notes(q: str = Query(..., min_length=2)):

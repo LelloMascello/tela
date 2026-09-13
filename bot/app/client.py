@@ -34,6 +34,22 @@ async def get_note_details(note_id: str) -> dict:
     return resp.json()
 
 
+async def export_notes_zip(note_ids: list[str]) -> tuple[bytes, str]:
+    """Chiede al backend uno .zip con le trascrizioni delle note indicate
+    (esportazione in blocco dei risultati di una ricerca)."""
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        resp = await client.post(f"{BACKEND_URL}/api/notes/export", json={"ids": note_ids})
+    if resp.status_code != 200:
+        raise BackendError(f"Esportazione fallita ({resp.status_code}): {resp.text}")
+
+    filename = "tela_trascrizioni.zip"
+    content_disposition = resp.headers.get("content-disposition", "")
+    if "filename=" in content_disposition:
+        filename = content_disposition.split("filename=")[-1].strip('"; ')
+
+    return resp.content, filename
+
+
 async def download_note_file(note_id: str) -> tuple[bytes, str]:
     async with httpx.AsyncClient(timeout=120.0) as client:
         resp = await client.get(f"{BACKEND_URL}/api/notes/{note_id}/file")

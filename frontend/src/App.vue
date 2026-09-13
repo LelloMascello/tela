@@ -13,6 +13,8 @@ const isUploadModalOpen = ref(false);
 const selectedNoteId = ref(null);
 const activeFilter = ref('Tutti');
 const currentQuery = ref('');
+const isExporting = ref(false);
+const exportError = ref(null);
 
 const filters = ['Tutti', 'PDF', 'Documenti', 'Immagini', 'Fogli', 'Presentazioni', 'Audio', 'Video'];
 const filterExtensions = {
@@ -83,6 +85,40 @@ const handleNoteDeleted = () => {
   window.location.reload();
 };
 
+// Esportazione in massa: scarica in un unico .zip le trascrizioni di tutti i
+// risultati attualmente mostrati per la ricerca in corso (rispetta il filtro
+// di tipo attivo, dato che esporta esattamente ciò che l'utente sta vedendo).
+const handleExportZip = async () => {
+  if (isExporting.value || filteredNotes.value.length === 0) return;
+
+  isExporting.value = true;
+  exportError.value = null;
+  try {
+    const ids = filteredNotes.value.map((note) => note.id);
+    const response = await api.post('/notes/export', { ids }, { responseType: 'blob' });
+
+    // Il backend suggerisce un nome file via Content-Disposition; usiamo un
+    // fallback locale nel caso non fosse presente.
+    const disposition = response.headers['content-disposition'] || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : `tela_trascrizioni_${Date.now()}.zip`;
+
+    const blobUrl = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error('Errore esportazione zip', error);
+    exportError.value = "Esportazione fallita. Riprova tra poco.";
+  } finally {
+    isExporting.value = false;
+  }
+};
+
 onMounted(fetchNotes);
 </script>
 
@@ -146,6 +182,24 @@ onMounted(fetchNotes);
       </div>
 
       <template v-else>
+        <div v-if="currentQuery.length >= 2" class="results-toolbar">
+          <span class="results-count">
+            {{ filteredNotes.length }} risultat{{ filteredNotes.length === 1 ? 'o' : 'i' }} per «{{ currentQuery }}»
+          </span>
+          <span class="toolbar-actions">
+            <span v-if="exportError" class="export-error">{{ exportError }}</span>
+            <button
+              type="button"
+              class="btn-secondary"
+              :disabled="isExporting"
+              @click="handleExportZip"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+              <span>{{ isExporting ? 'Preparazione…' : 'Esporta .zip' }}</span>
+            </button>
+          </span>
+        </div>
+
         <div class="list-header">
           <span></span><span>Documento</span><span>Stato</span><span>Data</span>
         </div>
@@ -258,6 +312,52 @@ onMounted(fetchNotes);
 .filter-chip.active .count { color: var(--ink-soft); }
 
 .archive { min-height: 240px; padding-top: 12px; }
+
+.results-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 4px 14px;
+}
+.results-count {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.export-error {
+  font-size: 13px;
+  color: var(--danger, #c0392b);
+}
+
+.btn-secondary {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.btn-secondary:hover:not(:disabled) { background: var(--surface-sunken); border-color: var(--accent); }
+.btn-secondary:disabled { opacity: 0.6; cursor: default; }
+
+@media (max-width: 640px) {
+  .results-toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .toolbar-actions { justify-content: space-between; }
+}
 
 /* Le colonne qui sotto devono restare identiche a quelle di .note-row in
    NoteCard.vue, così l'intestazione si allinea con le righe della lista. */

@@ -1,12 +1,16 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from app.client import BackendError, download_note_file, search_notes
+from app.client import BackendError, download_note_file, export_notes_zip, search_notes
 from app.core.config import MAX_SEARCH_RESULTS, logger
 from app.handlers.auth import restricted
 
 # Prefisso del callback_data usato dai bottoni di navigazione tra pagine di risultati.
 PAGE_PREFIX = "page:"
+
+# Callback_data del bottone di esportazione in blocco (nessun parametro extra
+# necessario: legge query e id direttamente da context.user_data["last_search"]).
+EXPORT_CALLBACK_DATA = "export_zip"
 
 
 def _build_caption(query: str, total: int, offset: int) -> str:
@@ -46,6 +50,13 @@ def _build_markup(hits: list, offset: int) -> InlineKeyboardMarkup:
 
     if nav_row:
         buttons.append(nav_row)
+
+    # Esportazione in blocco: scarica in un unico .zip le trascrizioni di
+    # *tutti* i risultati della ricerca corrente, non solo quelli della pagina
+    # mostrata. Presente su ogni pagina, non solo sulla prima.
+    buttons.append([InlineKeyboardButton(
+        f"📦 Esporta tutto in .zip ({len(hits)})", callback_data=EXPORT_CALLBACK_DATA
+    )])
 
     return InlineKeyboardMarkup(buttons)
 
@@ -111,6 +122,42 @@ async def paginate_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = _build_markup(hits, offset)
 
     await callback.edit_message_text(caption, reply_markup=markup)
+
+
+@restricted
+async def export_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Genera e invia lo .zip con le trascrizioni di tutti i risultati
+    dell'ultima ricerca salvata per questo utente."""
+    callback = update.callback_query
+    await callback.answer()
+
+    state = context.user_data.get("last_search")
+    if not state:
+        await callback.message.reply_text(
+            "⏳ Sessione di ricerca scaduta. Ripeti la ricerca con /cerca."
+        )
+        return
+
+    hits = state["hits"]
+    query = state["query"]
+    note_ids = [hit["id"] for hit in hits]
+
+    # Mostra "sta caricando un file" mentre il backend prepara lo zip,
+    # che su ricerche con molti risultati può richiedere qualche secondo.
+    await context.bot.send_chat_action(chat_id=callback.message.chat_id, action="upload_document")
+
+    try:
+        content, filename = await export_notes_zip(note_ids)
+    except BackendError as e:
+        logger.error("Errore esportazione zip: %s", e)
+        await callback.message.reply_text("❌ Esportazione fallita: errore del backend.")
+        return
+
+    await callback.message.reply_document(
+        document=content,
+        filename=filename,
+        caption=f"📦 {len(note_ids)} trascrizioni per «{query}»"
+    )
 
 
 @restricted

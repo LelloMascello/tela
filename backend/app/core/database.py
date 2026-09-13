@@ -66,6 +66,30 @@ def init_dbs():
         print(f"Avviso: Connessione a MeiliSearch non riuscita al momento del setup. Errore: {e}")
 
 
+def get_notes_by_ids(note_ids: list[str]) -> list[dict]:
+    """Recupera filename, titolo e testo estratto per un elenco di id note,
+    preservando l'ordine di `note_ids`. Usata per l'esportazione in blocco
+    delle trascrizioni (POST /api/notes/export): gli id non trovati (es. nota
+    cancellata nel frattempo) vengono semplicemente omessi dal risultato,
+    senza sollevare errori.
+    """
+    if not note_ids:
+        return []
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join("?" * len(note_ids))
+    cursor.execute(
+        f"SELECT id, filename, extracted_text, COALESCE(title, filename) AS title "
+        f"FROM notes WHERE id IN ({placeholders})",
+        note_ids
+    )
+    by_id = {row["id"]: dict(row) for row in cursor.fetchall()}
+    conn.close()
+
+    return [by_id[note_id] for note_id in note_ids if note_id in by_id]
+
+
 def delete_note(note_id: str) -> bool:
     """Elimina definitivamente una nota: rimuove la riga da SQLite, il file
     originale su disco e il documento corrispondente dall'indice MeiliSearch.
