@@ -4,7 +4,7 @@ services:
     image: getmeili/meilisearch:latest
     container_name: tela_meilisearch
     environment:
-      - MEILI_MASTER_KEY=chiave_segreta_tela_123 # Cambiala in produzione
+      - MEILI_MASTER_KEY=chiave_segreta_tela
       - MEILI_ENV=development
     ports:
       - "7700:7700"
@@ -22,7 +22,7 @@ services:
     environment:
       # URL interno di Docker: il backend parla con MeiliSearch usando il nome del container
       - MEILI_URL=http://meilisearch:7700 
-      - MEILI_MASTER_KEY=chiave_segreta_tela_123
+      - MEILI_MASTER_KEY=chiave_segreta_tela
     ports:
       - "8000:8000"
     volumes:
